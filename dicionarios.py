@@ -10,13 +10,13 @@ registers = {
 }
 
 opCode = {
-    'add': 0, 'sub': 0, 'xor': 0, 'lw': 35, 'sw': 43, 'beq': 4, 'j': 2
-}
-
-funct = {
-    'add': 32, 'sub': 34, 'xor': 38
+    'add': 0, 'sub': 0, 'xor': 0, 'lw': 35, 'sw': 43, 'beq': 4, 'j': 2, 'xori': 14, 'lb': 32
 }
 
 chamt = {
     'add': 0, 'sub': 0, 'xor': 0
+}
+
+funct = {
+    'add': 32, 'sub': 34, 'xor': 38
 }
