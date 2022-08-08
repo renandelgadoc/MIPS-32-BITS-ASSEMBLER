@@ -3,11 +3,34 @@ def tipoR(instrucao,comando):
     opCodeX = 0
     chamtX = 0
     function = funct[operacao]
-    if instrucao[0] == 'sll' or instrucao[0] == 'srl':
+    if instrucao[0] == 'sll' or instrucao[0] == 'srl' or instrucao[0] == 'sra':
         rs = 'zero'
         rd = instrucao[1][1:3]
         rt = instrucao[2][1:3]
         chamtX = int(instrucao[3])
+    elif instrucao[0] == 'mult' or instrucao[0] == 'div':
+        rd = 'zero'
+        rs = instrucao[1][1:3]
+        rt = instrucao[2][1:3]
+    elif instrucao[0] == 'mfhi' or instrucao[0] == 'mflo':
+        rt = 'zero'
+        rs = 'zero'
+        rd = instrucao[1][1:3]
+    elif instrucao[0] == 'srav':
+        rd = instrucao[1][1:3]
+        rt = instrucao[2][1:3]
+        rs = instrucao[3][1:3]
+    elif instrucao[0] == 'jr':
+        rt = 'zero'
+        rd = 'zero'
+        rs = instrucao[1][1:3]
+    elif instrucao[0] == 'jalr':
+        rt = 'zero'
+        rd = 'ra'
+        rs = instrucao[1][1:3]
+        if len(instrucao) > 2:
+            rd = instrucao[1][1:3]
+            rs = instrucao[2][1:3]
     else:
         rd = instrucao[1][1:3]
         rs = instrucao[2][1:3]
@@ -50,19 +73,20 @@ registers = {
 }
 
 opCode = {
-    'add': 0, 'sub': 0, 'xor': 0, 'lw': 35, 'sw': 43, 'beq': 4, 'j': 2, 'xori': 14, 'lb': 32, 'sll': 0,
-}
-
-chamt = {
-    'add': 0, 'sub': 0, 'xor': 0,
+    'lw': 35, 'sw': 43, 'beq': 4, 'j': 2, 'xori': 14, 'lb': 32,
 }
 
 funct = {
-    'add': 32, 'sub': 34, 'xor': 38, 'sll': 0, 'srl': 2
+    'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
+    'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
+    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9
 }
 
 instructionsType = {
-    'add': tipoR, 'sub': tipoR, 'xor': tipoR, 'sll': tipoR, 'srl': tipoR,
+    'add': tipoR, 'addu': tipoR, 'sub': tipoR, 'subu': tipoR, 'xor': tipoR, 'sll': tipoR,
+    'srl': tipoR, 'and': tipoR, 'or': tipoR, 'nor': tipoR, 'slt': tipoR, 'mult': tipoR,
+    'div': tipoR, 'mfhi': tipoR, 'mflo': tipoR, 'sra': tipoR, 'srav': tipoR, 'sltu': tipoR,
+    'jr': tipoR, 'jalr': tipoR,
 
     'lw': tipoI, 'sw': tipoI, 'beq': tipoI, 'xori': tipoI, 'lb': tipoI,
 

@@ -10,3 +10,20 @@ sw $t6, 8($t0)
 lb $t1, 100($t2)
 sll $t2, $t3, 10
 srl $t2, $t3, 10
+sub $t0, $s2, $t0
+and $t0, $s2, $t0
+or $t0, $s2, $t0
+nor $t0, $s2, $t0
+slt $t1, $t2, $t3
+addu $t1, $t2, $t3
+subu $t1, $t2, $t3
+mult $t1, $t2
+div $t1, $t2
+mfhi $t1
+mflo $t1
+srav $t1, $t2, $t3
+sra $t2, $t1, 10
+sltu $t1, $t2, $t3
+jr $t0
+jalr $t1
+jalr $t1, $t2
