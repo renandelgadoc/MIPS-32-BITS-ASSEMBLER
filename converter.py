@@ -61,6 +61,33 @@ def tipoI(instrucao,comando):
 def tipoJ(instrucao,comando):
     return
 
+def tipoFMT(instrucao,comando):
+    operacao = instrucao[0]
+    opCodeX = 17
+    if operacao.split('.')[0] == 'c':
+        operacao = operacao.replace('eq.',"")
+        fs = int(instrucao[1][2:3])
+        ft = int(instrucao[2][2:3])
+        cc = '000'
+        cond ='0010'
+        fd = int(cc + '00',2)
+        function = int('11' + cond,2)
+    else:
+        ft = int(instrucao[3][2:3])
+        fs = int(instrucao[2][2:3])
+        fd = int(instrucao[1][2:3])
+        function = functFMT[operacao.split('.')[0]]
+    if operacao.split('.')[1] == 'd':
+        fmt = 17
+    else:
+        fmt = 16
+    return("{:06b}".format(opCodeX) +
+            "{:05b}".format(fmt) +
+            "{:05b}".format(ft) +
+            "{:05b}".format(fs) +
+            "{:05b}".format(fd) +
+            "{:06b}".format(function))
+
 registers = {
     'zero': 0,   'at': 1,   'v0': 2,   'v1': 3,
     'a0': 4,   'a1': 5,   'a2': 6,   'a3': 7,
@@ -82,6 +109,10 @@ funct = {
     'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9
 }
 
+functFMT = {
+    'add': 0, 'sub': 1, 'mul': 2, 'div': 3
+}
+
 instructionsType = {
     'add': tipoR, 'addu': tipoR, 'sub': tipoR, 'subu': tipoR, 'xor': tipoR, 'sll': tipoR,
     'srl': tipoR, 'and': tipoR, 'or': tipoR, 'nor': tipoR, 'slt': tipoR, 'mult': tipoR,
@@ -90,7 +121,11 @@ instructionsType = {
 
     'lw': tipoI, 'sw': tipoI, 'beq': tipoI, 'xori': tipoI, 'lb': tipoI,
 
-    'j': tipoJ
+    'j': tipoJ,
+    
+    'add.d': tipoFMT, 'add.s': tipoFMT, 'sub.d': tipoFMT, 'sub.s': tipoFMT,
+    'c.eq.d': tipoFMT, 'c.eq.s': tipoFMT, 'mul.d': tipoFMT, 'mul.s': tipoFMT,
+    'div.d': tipoFMT, 'div.s': tipoFMT
 }
 
 

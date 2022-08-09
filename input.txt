@@ -27,3 +27,13 @@ sltu $t1, $t2, $t3
 jr $t0
 jalr $t1
 jalr $t1, $t2
+add.d $f0, $f1, $f2
+add.s $f0, $f1, $f2
+sub.d $f2, $f4, $f6
+sub.s $f0, $f1, $f3
+mul.d $f2, $f4, $f6
+mul.s $f1, $f2, $f3
+div.d $f2, $f4, $f6
+div.s $f0, $f1, $f2
+c.eq.d $f2, $f4
+c.eq.s $f0, $f1
