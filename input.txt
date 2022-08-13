@@ -42,3 +42,7 @@ div.d $f2, $f4, $f6
 div.s $f0, $f1, $f2
 c.eq.d $f2, $f4
 c.eq.s $f0, $f1
+slti $t1, $t2, -100
+sltiu $t1, $t2, -100
+Label: addi $t5, $t4, 10
+j Label

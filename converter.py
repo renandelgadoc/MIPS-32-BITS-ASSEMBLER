@@ -1,13 +1,42 @@
-def tipoR(instrucao,comando):
+registers = {
+    'zero': 0, 'at': 1, 'v0': 2, 'v1': 3,
+    'a0': 4, 'a1': 5, 'a2': 6, 'a3': 7,
+    't0': 8, 't1': 9, 't2': 10, 't3': 11,
+    't4': 12, 't5': 13, 't6': 14, 't7': 15,
+    's0': 16, 's1': 17, 's2': 18, 's3': 19,
+    's4': 20, 's5': 21, 's6': 22, 's7': 23,
+    't8': 24, 't9': 25, 'k0': 26, 'k1': 27,
+    'gp': 28, 'sp': 29, 'fp': 30, 'ra': 31
+}
+
+opCode = {
+    'tipo_r': 0, 'j': 2, 'jal': 3, 'beq': 4, 'addi': 8, 'addiu': 9, 'slti': 10, 'sltiu': 11, 'andi': 12,
+    'ori': 13, 'xori': 14, 'lui': 15, 'lb': 32, 'sb': 38, 'lw': 35, 'sw': 43
+}
+
+funct = {
+    'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
+    'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
+    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9
+}
+
+functFMT = {
+    'add': 0, 'sub': 1, 'mul': 2, 'div': 3
+}
+
+labels = {}
+
+
+def tipo_r(instrucao):
     operacao = instrucao[0]
-    opCodeX = 0
-    chamtX = 0
+    op_code_x = opCode['tipo_r']
+    chamt_x = 0
     function = funct[operacao]
     if instrucao[0] == 'sll' or instrucao[0] == 'srl' or instrucao[0] == 'sra':
         rs = 'zero'
         rd = instrucao[1][1:3]
         rt = instrucao[2][1:3]
-        chamtX = int(instrucao[3])
+        chamt_x = int(instrucao[3])
     elif instrucao[0] == 'mult' or instrucao[0] == 'div':
         rd = 'zero'
         rs = instrucao[1][1:3]
@@ -35,43 +64,59 @@ def tipoR(instrucao,comando):
         rd = instrucao[1][1:3]
         rs = instrucao[2][1:3]
         rt = instrucao[3][1:3]
-    return ("{:06b}".format(opCodeX) +
-            "{:05b}".format(registers[rs]) +
-            "{:05b}".format(registers[rt]) +
-            "{:05b}".format(registers[rd]) +
-            "{:05b}".format(chamtX) +
-            "{:06b}".format(function))
+    return ("{:06b}".format(op_code_x)
+            + "{:05b}".format(registers[rs])
+            + "{:05b}".format(registers[rt])
+            + "{:05b}".format(registers[rd])
+            + "{:05b}".format(chamt_x)
+            + "{:06b}".format(function))
 
-def tipoI(instrucao,comando):
-    if (comando.count(",") == 2):
+
+def transforma_negativo_em_complemento_de_2(imm):
+    imm = list(imm)
+    for i in range(0, len(imm)):
+        imm[i] = '0' if imm[i] == '1' else '1'
+    return ''.join(imm)
+
+
+def tipo_i(instrucao):
+    # identifica se a instrução usa immediate e separa cria uma lista com a intrução
+    if len(instrucao) == 3:
+        operacao, rt, imm_rs = instrucao
+        imm, rs = imm_rs[:-1].split("(")
+    else:
         operacao, rt, rs, imm = instrucao
-        binario = ("{:06b}".format(opCode[operacao]) +
-                   "{:05b}".format(registers[rs[1:3]]) +
-                   "{:05b}".format(registers[rt[1:3]]) +
-                   "{:016b}".format(int(imm)))
-        return binario
-    operacao, rt, imm_rs = instrucao
-    imm, rs = imm_rs[:-1].split("(")
-    binario = ("{:06b}".format(opCode[operacao]) +
-               "{:05b}".format(registers[rs[1:]]) +
-               "{:05b}".format(registers[rt[1:3]]) +
-               "{:016b}".format(int(imm)))
-    return binario
+    # transforma o immediate em binário complemento de 2
+    imm = int(imm)
+    if imm < 0:
+        imm = transforma_negativo_em_complemento_de_2("{:016b}".format(imm * -1 - 1))
+    else:
+        imm = "{:016b}".format(imm)
+    # retorna a word
+    return ("{:06b}".format(opCode[operacao])
+            + "{:05b}".format(registers[rs[1:3]])
+            + "{:05b}".format(registers[rt[1:3]])
+            + imm)
 
-def tipoJ(instrucao,comando):
-    return
 
-def tipoFMT(instrucao,comando):
+def tipo_j(instrucao):
     operacao = instrucao[0]
-    opCodeX = 17
+    label = labels[instrucao[1]]
+    return ("{:06b}".format(opCode[operacao])
+            + "{:026b}".format(label))
+
+
+def tipo_fmt(instrucao):
+    operacao = instrucao[0]
+    op_code_x = 17
     if operacao.split('.')[0] == 'c':
-        operacao = operacao.replace('eq.',"")
+        operacao = operacao.replace('eq.', "")
         fs = int(instrucao[1][2:3])
         ft = int(instrucao[2][2:3])
         cc = '000'
-        cond ='0010'
-        fd = int(cc + '00',2)
-        function = int('11' + cond,2)
+        cond = '0010'
+        fd = int(cc + '00', 2)
+        function = int('11' + cond, 2)
     else:
         ft = int(instrucao[3][2:3])
         fs = int(instrucao[2][2:3])
@@ -81,78 +126,60 @@ def tipoFMT(instrucao,comando):
         fmt = 17
     else:
         fmt = 16
-    return("{:06b}".format(opCodeX) +
-            "{:05b}".format(fmt) +
-            "{:05b}".format(ft) +
-            "{:05b}".format(fs) +
-            "{:05b}".format(fd) +
-            "{:06b}".format(function))
+    return ("{:06b}".format(op_code_x)
+            + "{:05b}".format(fmt)
+            + "{:05b}".format(ft)
+            + "{:05b}".format(fs)
+            + "{:05b}".format(fd)
+            + "{:06b}".format(function))
 
-registers = {
-    'zero': 0, 'at': 1,   'v0': 2,   'v1': 3,
-    'a0': 4,   'a1': 5,   'a2': 6,   'a3': 7,
-    't0': 8,   't1': 9,   't2': 10,  't3': 11,
-    't4': 12,  't5': 13,  't6': 14,  't7': 15,
-    's0': 16,  's1': 17,  's2': 18,  's3': 19,
-    's4': 20,  's5': 21,  's6': 22,  's7': 23,
-    't8': 24,  't9': 25,  'k0': 26,  'k1': 27,
-    'gp': 28,  'sp': 29,  'fp': 30,  'ra': 31
-}
-
-opCode = {
-    'lw': 35, 'sw': 43, 'beq': 4, 'j': 2, 'xori': 14, 'lb': 32,
-}
-
-funct = {
-    'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
-    'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
-    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9
-}
-
-functFMT = {
-    'add': 0, 'sub': 1, 'mul': 2, 'div': 3
-}
 
 instructionsType = {
-    'add': tipoR, 'addu': tipoR, 'sub': tipoR, 'subu': tipoR, 'xor': tipoR, 'sll': tipoR,
-    'srl': tipoR, 'and': tipoR, 'or': tipoR, 'nor': tipoR, 'slt': tipoR, 'mult': tipoR,
-    'div': tipoR, 'mfhi': tipoR, 'mflo': tipoR, 'sra': tipoR, 'srav': tipoR, 'sltu': tipoR,
-    'jr': tipoR, 'jalr': tipoR,
+    'add': tipo_r, 'addu': tipo_r, 'sub': tipo_r, 'subu': tipo_r, 'xor': tipo_r, 'sll': tipo_r,
+    'srl': tipo_r, 'and': tipo_r, 'or': tipo_r, 'nor': tipo_r, 'slt': tipo_r, 'mult': tipo_r,
+    'div': tipo_r, 'mfhi': tipo_r, 'mflo': tipo_r, 'sra': tipo_r, 'srav': tipo_r, 'sltu': tipo_r,
+    'jr': tipo_r, 'jalr': tipo_r,
 
-    'lw': tipoI, 'sw': tipoI, 'beq': tipoI, 'xori': tipoI, 'lb': tipoI,
+    'lw': tipo_i, 'sw': tipo_i, 'beq': tipo_i, 'xori': tipo_i, 'lb': tipo_i, 'sb': tipo_i, 'addi': tipo_i,
+    'addiu': tipo_i, 'andi': tipo_i, 'ori': tipo_i, 'lui': tipo_i, 'slti': tipo_i, 'sltiu': tipo_i,
 
-    'j': tipoJ,
-    
-    'add.d': tipoFMT, 'add.s': tipoFMT, 'sub.d': tipoFMT, 'sub.s': tipoFMT,
-    'c.eq.d': tipoFMT, 'c.eq.s': tipoFMT, 'mul.d': tipoFMT, 'mul.s': tipoFMT,
-    'div.d': tipoFMT, 'div.s': tipoFMT
+    'j': tipo_j, 'jal': tipo_j,
+
+    'add.d': tipo_fmt, 'add.s': tipo_fmt, 'sub.d': tipo_fmt, 'sub.s': tipo_fmt,
+    'c.eq.d': tipo_fmt, 'c.eq.s': tipo_fmt, 'mul.d': tipo_fmt, 'mul.s': tipo_fmt,
+    'div.d': tipo_fmt, 'div.s': tipo_fmt
 }
-
+# limpa o arquivo de output para a próxima execução
+with open('output_text.txt', 'w'):
+    pass
 
 with open('input.txt') as entrada:
     listaComandos = entrada.readlines()
     iText = 0
     iData = 0
-    for comando in listaComandos:
-        if comando == '.data\n' or comando == '.text\n':
-            campo = comando
-            continue
-        elif comando == '\n':
+    for linha in listaComandos:
+        if linha == '\n':
             print()
             continue
+        elif linha == '.data\n' or linha == '.text\n':
+            campo = linha
+            continue
         if campo == '.data\n':
-            words = comando.replace(',',"").strip('\n').split(" ")[2:]
+            words = linha.replace(',', "").strip('\n').split(" ")[2:]
             for word in words:
-                print("{0:08x} : {1:08x};".format(iData,int(word,16)))
+                print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
                 with open('output_data.txt', 'a') as saidaData:
-                    saidaData.write("{0:08x} : {1:08x};\n".format(iData,int(word,16)))
+                    saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
                     saidaData.close()
                 iData += 1
         elif campo == '.text\n':
-            instrucao = comando.strip('\n').split(" ")
-            convertido = instructionsType[instrucao[0]](instrucao,comando)
-            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), comando.strip('\n')))
+            instrucao = linha.strip('\n').split(" ")
+            if ':' in instrucao[0]:
+                labels[instrucao[0][:-1]] = iText
+                instrucao.pop(0)
+            convertido = instructionsType[instrucao[0]](instrucao)
+            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha.strip('\n')))
             with open('output_text.txt', 'a') as saidaText:
-                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), comando.strip('\n')))
+                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), linha.strip('\n')))
                 saidaText.close()
             iText += 1
