@@ -89,7 +89,7 @@ def tipoFMT(instrucao,comando):
             "{:06b}".format(function))
 
 registers = {
-    'zero': 0,   'at': 1,   'v0': 2,   'v1': 3,
+    'zero': 0, 'at': 1,   'v0': 2,   'v1': 3,
     'a0': 4,   'a1': 5,   'a2': 6,   'a3': 7,
     't0': 8,   't1': 9,   't2': 10,  't3': 11,
     't4': 12,  't5': 13,  't6': 14,  't7': 15,
@@ -131,9 +131,28 @@ instructionsType = {
 
 with open('input.txt') as entrada:
     listaComandos = entrada.readlines()
-    i = 0
+    iText = 0
+    iData = 0
     for comando in listaComandos:
-        instrucao = comando.strip('\n').split(" ")
-        convertido = instructionsType[instrucao[0]](instrucao,comando)
-        print("{0:08x} : {1:08x} ; % {2} %".format(i, int(convertido, 2), comando.strip('\n')))
-        i = i + 1
+        if comando == '.data\n' or comando == '.text\n':
+            campo = comando
+            continue
+        elif comando == '\n':
+            print()
+            continue
+        if campo == '.data\n':
+            words = comando.replace(',',"").strip('\n').split(" ")[2:]
+            for word in words:
+                print("{0:08x} : {1:08x};".format(iData,int(word,16)))
+                with open('output_data.txt', 'a') as saidaData:
+                    saidaData.write("{0:08x} : {1:08x};\n".format(iData,int(word,16)))
+                    saidaData.close()
+                iData += 1
+        elif campo == '.text\n':
+            instrucao = comando.strip('\n').split(" ")
+            convertido = instructionsType[instrucao[0]](instrucao,comando)
+            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), comando.strip('\n')))
+            with open('output_text.txt', 'a') as saidaText:
+                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), comando.strip('\n')))
+                saidaText.close()
+            iText += 1
