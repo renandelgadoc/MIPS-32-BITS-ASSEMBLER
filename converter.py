@@ -13,13 +13,14 @@ opCode = {
     'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'slti': 10,
     'sltiu': 11,
     'andi': 12,
-    'ori': 13, 'xori': 14, 'lui': 15, 'lb': 32, 'sb': 38, 'lw': 35, 'sw': 43
+    'ori': 13, 'xori': 14, 'lui': 15, 'lb': 32, 'sb': 38, 'lw': 35, 'sw': 43,
+    'tipo_r2': 28
 }
 
 funct = {
     'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
     'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
-    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9
+    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9, 'clo': 33, 'madd': 0, 'msubu': 5, 'mul': 2, 'movn': 11
 }
 
 rt_code = {
@@ -40,36 +41,66 @@ def tipo_r(lista_de_parametros):
     function = funct[operacao]
     if lista_de_parametros[0] == 'sll' or lista_de_parametros[0] == 'srl' or lista_de_parametros[0] == 'sra':
         rs = 'zero'
-        rd = lista_de_parametros[1].replace('$', '').replace(',', '')
-        rt = lista_de_parametros[2].replace('$', '').replace(',', '')
+        rd = lista_de_parametros[1]
+        rt = lista_de_parametros[2]
         chamt_x = int(lista_de_parametros[3])
     elif lista_de_parametros[0] == 'mult' or lista_de_parametros[0] == 'div':
         rd = 'zero'
-        rs = lista_de_parametros[1].replace('$', '').replace(',', '')
-        rt = lista_de_parametros[2].replace('$', '').replace(',', '')
+        rs = lista_de_parametros[1]
+        rt = lista_de_parametros[2]
     elif lista_de_parametros[0] == 'mfhi' or lista_de_parametros[0] == 'mflo':
         rt = 'zero'
         rs = 'zero'
-        rd = lista_de_parametros[1].replace('$', '').replace(',', '')
+        rd = lista_de_parametros[1]
     elif lista_de_parametros[0] == 'srav':
-        rd = lista_de_parametros[1].replace('$', '').replace(',', '')
-        rt = lista_de_parametros[2].replace('$', '').replace(',', '')
-        rs = lista_de_parametros[3].replace('$', '').replace(',', '')
+        rd = lista_de_parametros[1]
+        rt = lista_de_parametros[2]
+        rs = lista_de_parametros[3]
     elif lista_de_parametros[0] == 'jr':
         rt = 'zero'
         rd = 'zero'
-        rs = lista_de_parametros[1].replace('$', '').replace(',', '')
+        rs = lista_de_parametros[1]
     elif lista_de_parametros[0] == 'jalr':
         rt = 'zero'
         rd = 'ra'
-        rs = lista_de_parametros[1].replace('$', '').replace(',', '')
+        rs = lista_de_parametros[1]
         if len(lista_de_parametros) > 2:
-            rd = lista_de_parametros[1].replace('$', '').replace(',', '')
-            rs = lista_de_parametros[2].replace('$', '').replace(',', '')
+            rd = lista_de_parametros[1]
+            rs = lista_de_parametros[2]
+    elif lista_de_parametros[0] == 'clo':
+        rd = lista_de_parametros[1]
+        rs = lista_de_parametros[2]
+        rt = 'zero'
+        op_code_x = 28
     else:
-        rd = lista_de_parametros[1].replace('$', '').replace(',', '')
-        rs = lista_de_parametros[2].replace('$', '').replace(',', '')
-        rt = lista_de_parametros[3].replace('$', '').replace(',', '')
+        rd = lista_de_parametros[1]
+        rs = lista_de_parametros[2]
+        rt = lista_de_parametros[3]
+    return ("{:06b}".format(op_code_x)
+            + "{:05b}".format(registers[rs])
+            + "{:05b}".format(registers[rt])
+            + "{:05b}".format(registers[rd])
+            + "{:05b}".format(chamt_x)
+            + "{:06b}".format(function))
+
+
+def tipo_r2(lista_de_parametros):
+    operacao = lista_de_parametros[0]
+    op_code_x = opCode['tipo_r2']
+    chamt_x = 0
+    function = funct[operacao]
+    if lista_de_parametros[0] == 'clo':
+        rd = lista_de_parametros[1]
+        rs = lista_de_parametros[2]
+        rt = 'zero'
+    elif len(lista_de_parametros) > 3:
+        rd = lista_de_parametros[1]
+        rs = lista_de_parametros[2]
+        rt = lista_de_parametros[3]
+    else:
+        rd = 'zero'
+        rs = lista_de_parametros[1]
+        rt = lista_de_parametros[2]
     return ("{:06b}".format(op_code_x)
             + "{:05b}".format(registers[rs])
             + "{:05b}".format(registers[rt])
@@ -90,22 +121,22 @@ def tipo_i(lista_de_parametros):
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
         operacao, rs, imm = lista_de_parametros
         rt = rt_code[operacao]
-        rs = registers[rs.replace('$', '').replace(',', '')]
+        rs = registers[rs]
         imm = labels[imm]
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
         operacao, rs, rt, imm = lista_de_parametros
-        rt = registers[rt.replace('$', '').replace(',', '')]
-        rs = registers[rs.replace('$', '').replace(',', '')]
+        rt = registers[rt]
+        rs = registers[rs]
         imm = labels[imm]
     elif len(lista_de_parametros) == 3:
         operacao, rt, var = lista_de_parametros
         imm, rs = var[:-1].split("(")
-        rs = registers[rs.replace('$', '').replace(',', '')]
-        rt = registers[rt.replace('$', '').replace(',', '')]
+        rs = registers[rs]
+        rt = registers[rt]
     else:
         operacao, rt, rs, imm = lista_de_parametros
-        rs = registers[rs.replace('$', '').replace(',', '')]
-        rt = registers[rt.replace('$', '').replace(',', '')]
+        rs = registers[rs]
+        rt = registers[rt]
     # transforma o immediate em binário complemento de 2
     imm = int(imm)
     if imm < 0:
@@ -131,16 +162,16 @@ def tipo_fmt(lista_de_parametros):
     op_code_x = 17
     if operacao.split('.')[0] == 'c':
         operacao = operacao.replace('eq.', "")
-        fs = int(lista_de_parametros[1][2:3])
-        ft = int(lista_de_parametros[2][2:3])
+        fs = int(lista_de_parametros[1][1:])
+        ft = int(lista_de_parametros[2][1:])
         cc = '000'
         cond = '0010'
         fd = int(cc + '00', 2)
         function = int('11' + cond, 2)
     else:
-        ft = int(lista_de_parametros[3][2:3])
-        fs = int(lista_de_parametros[2][2:3])
-        fd = int(lista_de_parametros[1][2:3])
+        ft = int(lista_de_parametros[3][1:])
+        fs = int(lista_de_parametros[2][1:])
+        fd = int(lista_de_parametros[1][1:])
         function = functFMT[operacao.split('.')[0]]
     if operacao.split('.')[1] == 'd':
         fmt = 17
@@ -158,7 +189,9 @@ instructionsType = {
     'add': tipo_r, 'addu': tipo_r, 'sub': tipo_r, 'subu': tipo_r, 'xor': tipo_r, 'sll': tipo_r,
     'srl': tipo_r, 'and': tipo_r, 'or': tipo_r, 'nor': tipo_r, 'slt': tipo_r, 'mult': tipo_r,
     'div': tipo_r, 'mfhi': tipo_r, 'mflo': tipo_r, 'sra': tipo_r, 'srav': tipo_r, 'sltu': tipo_r,
-    'jr': tipo_r, 'jalr': tipo_r,
+    'jr': tipo_r, 'jalr': tipo_r, 'movn': tipo_r,
+
+    'clo': tipo_r2, 'madd': tipo_r2, 'msubu': tipo_r2, 'mul': tipo_r2,
 
     'lw': tipo_i, 'sw': tipo_i, 'beq': tipo_i, 'bne': tipo_i, 'xori': tipo_i, 'lb': tipo_i, 'sb': tipo_i,
     'addi': tipo_i,
@@ -192,10 +225,9 @@ with open('input.txt') as entrada:
                 print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
                 with open('output_data.txt', 'a') as saidaData:
                     saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
-                    saidaData.close()
                 iData += 1
         elif campo == '.text\n':
-            instrucao = linha.strip('\n').split(" ")
+            instrucao = linha.strip('\n').replace('$', '').replace(',', '').split(" ")
             if ':' in instrucao[0]:
                 labels[instrucao[0][:-1]] = iText
                 instrucao.pop(0)

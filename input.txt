@@ -46,3 +46,8 @@ bgez $t1, Label
 bgezal $t1, Label
 beq $t1, $zero, Label
 bne $t1, $zero, Label
+clo $t1, $t2
+madd $t1, $t2
+msubu $t1, $t2
+mul $t1, $t2, $t5
+movn $t1, $t2, $t3
