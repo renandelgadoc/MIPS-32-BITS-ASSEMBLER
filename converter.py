@@ -37,13 +37,13 @@ labels = {}
 def tipo_r(lista_de_parametros):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r']
-    chamt_x = 0
+    shamt_x = 0
     function = funct[operacao]
     if lista_de_parametros[0] == 'sll' or lista_de_parametros[0] == 'srl' or lista_de_parametros[0] == 'sra':
         rs = 'zero'
         rd = lista_de_parametros[1]
         rt = lista_de_parametros[2]
-        chamt_x = int(lista_de_parametros[3])
+        shamt_x = int(lista_de_parametros[3])
     elif lista_de_parametros[0] == 'mult' or lista_de_parametros[0] == 'div':
         rd = 'zero'
         rs = lista_de_parametros[1]
@@ -80,14 +80,14 @@ def tipo_r(lista_de_parametros):
             + "{:05b}".format(registers[rs])
             + "{:05b}".format(registers[rt])
             + "{:05b}".format(registers[rd])
-            + "{:05b}".format(chamt_x)
+            + "{:05b}".format(shamt_x)
             + "{:06b}".format(function))
 
 
 def tipo_r2(lista_de_parametros):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r2']
-    chamt_x = 0
+    shamt_x = 0
     function = funct[operacao]
     if lista_de_parametros[0] == 'clo':
         rd = lista_de_parametros[1]
@@ -105,7 +105,7 @@ def tipo_r2(lista_de_parametros):
             + "{:05b}".format(registers[rs])
             + "{:05b}".format(registers[rt])
             + "{:05b}".format(registers[rd])
-            + "{:05b}".format(chamt_x)
+            + "{:05b}".format(shamt_x)
             + "{:06b}".format(function))
 
 
@@ -129,10 +129,15 @@ def tipo_i(lista_de_parametros):
         rs = registers[rs]
         imm = labels[imm]
     elif len(lista_de_parametros) == 3:
-        operacao, rt, var = lista_de_parametros
-        imm, rs = var[:-1].split("(")
-        rs = registers[rs]
-        rt = registers[rt]
+        if lista_de_parametros[0] == 'lui':
+            rs = registers['zero']
+            operacao, rt, imm = lista_de_parametros
+            rt = registers[rt]
+        else:
+            operacao, rt, var = lista_de_parametros
+            imm, rs = var[:-1].split("(")
+            rs = registers[rs]
+            rt = registers[rt]
     else:
         operacao, rt, rs, imm = lista_de_parametros
         rs = registers[rs]
@@ -205,10 +210,12 @@ instructionsType = {
     'div.d': tipo_fmt, 'div.s': tipo_fmt
 }
 # limpa o arquivo de output para a próxima execução
-with open('output_text.txt', 'w'):
+with open('input_text.mif', 'w'):
+    pass
+with open('input_data.mif', 'w'):
     pass
 
-with open('input.txt') as entrada:
+with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
     iText = 0
     iData = 0
@@ -223,16 +230,16 @@ with open('input.txt') as entrada:
             words = linha.replace(',', "").strip('\n').split(" ")[2:]
             for word in words:
                 print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
-                with open('output_data.txt', 'a') as saidaData:
+                with open('input_data.mif', 'a') as saidaData:
                     saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
                 iData += 1
         elif campo == '.text\n':
-            instrucao = linha.strip('\n').replace('$', '').replace(',', '').split(" ")
+            instrucao = linha.strip('\n').replace('$', '').replace(',', ' ').replace("  "," ").split(" ")
             if ':' in instrucao[0]:
                 labels[instrucao[0][:-1]] = iText
                 instrucao.pop(0)
             convertido = instructionsType[instrucao[0]](instrucao)
             print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha.strip('\n')))
-            with open('output_text.txt', 'a') as saidaText:
+            with open('input_text.mif', 'a') as saidaText:
                 saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), linha.strip('\n')))
             iText += 1
