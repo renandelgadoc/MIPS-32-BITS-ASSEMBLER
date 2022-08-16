@@ -115,19 +115,24 @@ def transforma_negativo_em_complemento_de_2(imm):
         imm[i] = '0' if imm[i] == '1' else '1'
     return ''.join(imm)
 
+def branch_target_adress(label):
+    with open('input_text.mif') as output:
+        ultima_linha = len(output.readlines())
+    bta = labels[label] - ( 1048576 + ultima_linha + 1)
+    return bta
 
 def tipo_i(lista_de_parametros):
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
-        operacao, rs, imm = lista_de_parametros
+        operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
         rs = registers[rs]
-        imm = labels[imm]
+        imm = branch_target_adress(label)
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
-        operacao, rs, rt, imm = lista_de_parametros
+        operacao, rs, rt, label = lista_de_parametros
         rt = registers[rt]
         rs = registers[rs]
-        imm = labels[imm]
+        imm = branch_target_adress(label)
     elif lista_de_parametros[0] == 'li':
         return '0'
     elif len(lista_de_parametros) == 3:
