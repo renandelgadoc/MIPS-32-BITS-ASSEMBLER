@@ -128,6 +128,8 @@ def tipo_i(lista_de_parametros):
         rt = registers[rt]
         rs = registers[rs]
         imm = labels[imm]
+    elif lista_de_parametros[0] == 'li':
+        return '0'
     elif len(lista_de_parametros) == 3:
         if lista_de_parametros[0] == 'lui':
             rs = registers['zero']
@@ -201,7 +203,7 @@ instructionsType = {
     'lw': tipo_i, 'sw': tipo_i, 'beq': tipo_i, 'bne': tipo_i, 'xori': tipo_i, 'lb': tipo_i, 'sb': tipo_i,
     'addi': tipo_i,
     'addiu': tipo_i, 'andi': tipo_i, 'ori': tipo_i, 'lui': tipo_i, 'slti': tipo_i, 'sltiu': tipo_i, 'bgez': tipo_i,
-    'bgezal': tipo_i,
+    'bgezal': tipo_i, 'li': tipo_i,
 
     'j': tipo_j, 'jal': tipo_j,
 
@@ -220,26 +222,29 @@ with open('input.asm') as entrada:
     iText = 0
     iData = 0
     for linha in listaComandos:
-        if linha == '\n':
+        linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
+        while "  " in linha:
+            linha = linha.replace('  ', ' ')
+        if linha == '':
             print()
             continue
-        elif linha == '.data\n' or linha == '.text\n':
+        elif linha == '.data' or linha == '.text':
             campo = linha
             continue
-        if campo == '.data\n':
-            words = linha.replace(',', "").strip('\n').split(" ")[2:]
+        if campo == '.data':
+            words = linha.split(" ")[2:]
             for word in words:
                 print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
                 with open('input_data.mif', 'a') as saidaData:
                     saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
                 iData += 1
-        elif campo == '.text\n':
-            instrucao = linha.strip('\n').replace('$', '').replace(',', ' ').replace("  "," ").split(" ")
+        elif campo == '.text':
+            instrucao = linha.split(" ")
             if ':' in instrucao[0]:
                 labels[instrucao[0][:-1]] = iText
                 instrucao.pop(0)
             convertido = instructionsType[instrucao[0]](instrucao)
-            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha.strip('\n')))
+            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha))
             with open('input_text.mif', 'a') as saidaText:
-                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), linha.strip('\n')))
+                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), linha))
             iText += 1
