@@ -3,7 +3,7 @@ a: .word 0xfffffffa, 0x00000004, 0x00000010
 b: .word 3, 2, 1
 
 .text
-Label: add $t1,$t2, $t3
+Label:  add $t1,$t2, $t3
 xor $t4,           	$t1, $t2         		
 		    sll    $t2,$t3, 10
 srl $t2, $t3, 10
@@ -47,12 +47,12 @@ bne $t1, $zero, Label
 bgez $t1, Label
 bgezal $t1, Label
 j Label
-jal Label
+jal Label1
 clo $t1,$t2
 madd $t1,$t2
 msubu $t1, $t2
 mul $t1, $t2,               $t5           
-movn $t1, $t2, $t3
+Label1: movn $t1, $t2, $t3
 lui $t1, 10
 xori $t6,$t5, -10
 ori $t6, $t5, -10

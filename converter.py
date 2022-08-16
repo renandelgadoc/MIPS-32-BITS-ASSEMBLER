@@ -219,7 +219,21 @@ with open('input_data.mif', 'w'):
 
 with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
-    iText = 0
+    iText=1048576
+    #grava as labels em um dicionário
+    for linha in listaComandos:
+        linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
+        if linha == '':
+            continue
+        elif linha == '.data' or linha == '.text':
+            campo = linha
+            continue
+        if campo == '.text':
+            primeiro_elemento = linha.split(" ")[0]
+            if(":" in primeiro_elemento):
+                labels[primeiro_elemento.replace(':', '')] = int(iText)
+            iText+=1
+    iText = 1048576
     iData = 0
     for linha in listaComandos:
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
@@ -241,7 +255,6 @@ with open('input.asm') as entrada:
         elif campo == '.text':
             instrucao = linha.split(" ")
             if ':' in instrucao[0]:
-                labels[instrucao[0][:-1]] = iText
                 instrucao.pop(0)
             convertido = instructionsType[instrucao[0]](instrucao)
             print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha))
