@@ -32,6 +32,7 @@ functFMT = {
 }
 
 labels = {}
+words_data = []
 
 
 def tipo_r(lista_de_parametros):
@@ -115,11 +116,13 @@ def transforma_negativo_em_complemento_de_2(imm):
         imm[i] = '0' if imm[i] == '1' else '1'
     return ''.join(imm)
 
+
 def branch_target_adress(label):
     with open('input_text.mif') as output:
         ultima_linha = len(output.readlines())
-    bta = labels[label] - ( 1048576 + ultima_linha + 1)
+    bta = labels[label] - (1048576 + ultima_linha + 1)
     return bta
+
 
 def tipo_i(lista_de_parametros):
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução
@@ -224,8 +227,8 @@ with open('input_data.mif', 'w'):
 
 with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
-    iText=1048576
-    #grava as labels em um dicionário
+    iText = 1048576
+#   grava as labels em um dicionário
     for linha in listaComandos:
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
         if linha == '':
@@ -235,9 +238,9 @@ with open('input.asm') as entrada:
             continue
         if campo == '.text':
             primeiro_elemento = linha.split(" ")[0]
-            if(":" in primeiro_elemento):
+            if ":" in primeiro_elemento:
                 labels[primeiro_elemento.replace(':', '')] = int(iText)
-            iText+=1
+            iText += 1
     iText = 1048576
     iData = 0
     for linha in listaComandos:
@@ -251,6 +254,11 @@ with open('input.asm') as entrada:
             campo = linha
             continue
         if campo == '.data':
+            linha_word = linha.replace(':', '').replace('.word ', '').split(' ')
+            word_armazenar = [linha_word[0], len(linha_word[1:])]
+            for elemento in linha_word[1:]:
+                word_armazenar.append(int(elemento, 16))
+            words_data.append(word_armazenar)
             words = linha.split(" ")[2:]
             for word in words:
                 print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
