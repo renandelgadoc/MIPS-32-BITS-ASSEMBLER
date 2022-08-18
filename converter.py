@@ -120,8 +120,8 @@ def transforma_negativo_em_complemento_de_2(imm):
 def branch_target_adress(label):
     with open('input_text.mif') as output:
         ultima_linha = len(output.readlines())
-    bta = labels[label] - (1048576 + ultima_linha + 1)
-    return bta
+    bta = labels[label] - (ultima_linha + 1)
+    return str(bta)
 
 
 def tipo_i(lista_de_parametros):
@@ -136,8 +136,6 @@ def tipo_i(lista_de_parametros):
         rt = registers[rt]
         rs = registers[rs]
         imm = branch_target_adress(label)
-    elif lista_de_parametros[0] == 'li':
-        return '0'
     elif len(lista_de_parametros) == 3:
         if lista_de_parametros[0] == 'lui':
             rs = registers['zero']
@@ -152,8 +150,11 @@ def tipo_i(lista_de_parametros):
         operacao, rt, rs, imm = lista_de_parametros
         rs = registers[rs]
         rt = registers[rt]
-    # transforma o immediate em binário complemento de 2
-    imm = int(imm)
+        # transforma o immediate em binário complemento de 2
+    if 'x' in imm:
+        imm = int(imm, 16)
+    else:
+        imm = int(imm)
     if imm < 0:
         imm = transforma_negativo_em_complemento_de_2("{:016b}".format((imm * -1) - 1))
     else:
@@ -225,10 +226,10 @@ with open('input_text.mif', 'w'):
 with open('input_data.mif', 'w'):
     pass
 
-with open('input.asm') as entrada:
+with open('lab212018TDNivel3.asm') as entrada:
     listaComandos = entrada.readlines()
-    iText = 1048576
-#   grava as labels em um dicionário
+    iText = 0
+    #   grava as labels em um dicionário
     for linha in listaComandos:
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
         if linha == '':
@@ -241,36 +242,60 @@ with open('input.asm') as entrada:
             if ":" in primeiro_elemento:
                 labels[primeiro_elemento.replace(':', '')] = int(iText)
             iText += 1
-    iText = 1048576
+            if 'li' in linha:
+                iText+=1
+    iText = 0
     iData = 0
     for linha in listaComandos:
-        linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
-        while "  " in linha:
-            linha = linha.replace('  ', ' ')
-        if linha == '':
+        linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
+            '\n').strip(" ")
+        while "  " in linha_formatada:
+            linha_formatada = linha_formatada.replace('  ', ' ')
+        if linha_formatada == '':
             print()
             continue
-        elif linha == '.data' or linha == '.text':
-            campo = linha
+        elif linha_formatada == '.data' or linha_formatada == '.text':
+            campo = linha_formatada
             continue
         if campo == '.data':
-            linha_word = linha.replace(':', '').replace('.word ', '').split(' ')
+            linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
             word_armazenar = [linha_word[0], len(linha_word[1:])]
             for elemento in linha_word[1:]:
                 word_armazenar.append(int(elemento, 16))
             words_data.append(word_armazenar)
-            words = linha.split(" ")[2:]
+            words = linha_formatada.split(" ")[2:]
             for word in words:
                 print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
                 with open('input_data.mif', 'a') as saidaData:
                     saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
                 iData += 1
         elif campo == '.text':
-            instrucao = linha.split(" ")
+            instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
                 instrucao.pop(0)
-            convertido = instructionsType[instrucao[0]](instrucao)
-            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(convertido, 2), linha))
+            if instrucao[0] == 'li':
+                imm = instrucao[2]
+                if 'x' in imm:
+                    imm = int(instrucao[2], 16)
+                else:
+                    imm = int(instrucao[2])
+                imm_bin = '{:032b}'.format(imm)
+                imm1 = str(int(imm_bin[0:16], 2))
+                imm2 = str(int(imm_bin[16:32], 2))
+                sla = tipo_i(['lui', 'at', imm1])
+                print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(sla, 2), linha.replace('\n', '')))
+                with open('input_text.mif', 'a') as saidaText:
+                    saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(sla, 2), linha.replace('\n', '')))
+                iText += 1
+                sla = tipo_i(['ori', instrucao[1], 'at', imm2])
+                print("{0:08x} : {1:08x} ;\n".format(iText, int(sla, 2)))
+                with open('input_text.mif', 'a') as saidaText:
+                    saidaText.write(
+                        "{0:08x} : {1:08x} ;\n".format(iText, int(sla, 2)))
+                iText += 1
+                continue
+            sla = instructionsType[instrucao[0]](instrucao)
+            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(sla, 2), linha.replace('\n', '')))
             with open('input_text.mif', 'a') as saidaText:
-                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(convertido, 2), linha))
+                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(sla, 2), linha.replace('\n', '')))
             iText += 1
