@@ -33,6 +33,7 @@ functFMT = {
 
 labels = {}
 words_data = []
+words_nome = []
 
 
 def tipo_r(lista_de_parametros):
@@ -226,7 +227,7 @@ with open('input_text.mif', 'w'):
 with open('input_data.mif', 'w'):
     pass
 
-with open('lab212018TDNivel3.asm') as entrada:
+with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
     iText = 0
     #   grava as labels em um dicionário
@@ -243,7 +244,7 @@ with open('lab212018TDNivel3.asm') as entrada:
                 labels[primeiro_elemento.replace(':', '')] = int(iText)
             iText += 1
             if 'li' in linha:
-                iText+=1
+                iText += 1
     iText = 0
     iData = 0
     for linha in listaComandos:
@@ -259,7 +260,9 @@ with open('lab212018TDNivel3.asm') as entrada:
             continue
         if campo == '.data':
             linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
-            word_armazenar = [linha_word[0], len(linha_word[1:])]
+            nome_word = linha_word[0]
+            word_armazenar = [nome_word]
+            words_nome.append(nome_word)
             for elemento in linha_word[1:]:
                 word_armazenar.append(int(elemento, 16))
             words_data.append(word_armazenar)
