@@ -36,7 +36,7 @@ words_data = []
 words_nome = []
 
 
-def tipo_r(lista_de_parametros):
+def tipo_r(lista_de_parametros, linha):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r']
     shamt_x = 0
@@ -78,15 +78,16 @@ def tipo_r(lista_de_parametros):
         rd = lista_de_parametros[1]
         rs = lista_de_parametros[2]
         rt = lista_de_parametros[3]
-    return ("{:06b}".format(op_code_x)
-            + "{:05b}".format(registers[rs])
-            + "{:05b}".format(registers[rt])
-            + "{:05b}".format(registers[rd])
-            + "{:05b}".format(shamt_x)
-            + "{:06b}".format(function))
+    escrever_output("{:06b}".format(op_code_x)
+                    + "{:05b}".format(registers[rs])
+                    + "{:05b}".format(registers[rt])
+                    + "{:05b}".format(registers[rd])
+                    + "{:05b}".format(shamt_x)
+                    + "{:06b}".format(function), linha)
+    return
 
 
-def tipo_r2(lista_de_parametros):
+def tipo_r2(lista_de_parametros, linha):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r2']
     shamt_x = 0
@@ -103,12 +104,13 @@ def tipo_r2(lista_de_parametros):
         rd = 'zero'
         rs = lista_de_parametros[1]
         rt = lista_de_parametros[2]
-    return ("{:06b}".format(op_code_x)
-            + "{:05b}".format(registers[rs])
-            + "{:05b}".format(registers[rt])
-            + "{:05b}".format(registers[rd])
-            + "{:05b}".format(shamt_x)
-            + "{:06b}".format(function))
+    escrever_output("{:06b}".format(op_code_x)
+                    + "{:05b}".format(registers[rs])
+                    + "{:05b}".format(registers[rt])
+                    + "{:05b}".format(registers[rd])
+                    + "{:05b}".format(shamt_x)
+                    + "{:06b}".format(function), linha)
+    return
 
 
 def transforma_negativo_em_complemento_de_2(imm):
@@ -119,13 +121,11 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 
 def branch_target_adress(label):
-    with open('input_text.mif') as output:
-        ultima_linha = len(output.readlines())
-    bta = labels[label] - (ultima_linha + 1)
+    bta = labels[label] - iText
     return str(bta)
 
 
-def tipo_i(lista_de_parametros):
+def tipo_i(lista_de_parametros, linha):
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
         operacao, rs, label = lista_de_parametros
@@ -161,20 +161,21 @@ def tipo_i(lista_de_parametros):
     else:
         imm = "{:016b}".format(imm)
     # retorna a word
-    return ("{:06b}".format(opCode[operacao])
-            + "{:05b}".format(rs)
-            + "{:05b}".format(rt)
-            + imm)
+    escrever_output("{:06b}".format(opCode[operacao])
+                    + "{:05b}".format(rs)
+                    + "{:05b}".format(rt)
+                    + imm, linha)
+    return
 
 
-def tipo_j(lista_de_parametros):
+def tipo_j(lista_de_parametros, linha):
     operacao = lista_de_parametros[0]
     label = labels[lista_de_parametros[1]]
-    return ("{:06b}".format(opCode[operacao])
-            + "{:026b}".format(label))
+    escrever_output("{:06b}".format(opCode[operacao])
+                    + "{:026b}".format(label), linha)
 
 
-def tipo_fmt(lista_de_parametros):
+def tipo_fmt(lista_de_parametros, linha):
     operacao = lista_de_parametros[0]
     op_code_x = 17
     if operacao.split('.')[0] == 'c':
@@ -194,12 +195,13 @@ def tipo_fmt(lista_de_parametros):
         fmt = 17
     else:
         fmt = 16
-    return ("{:06b}".format(op_code_x)
-            + "{:05b}".format(fmt)
-            + "{:05b}".format(ft)
-            + "{:05b}".format(fs)
-            + "{:05b}".format(fd)
-            + "{:06b}".format(function))
+    escrever_output("{:06b}".format(op_code_x)
+                    + "{:05b}".format(fmt)
+                    + "{:05b}".format(ft)
+                    + "{:05b}".format(fs)
+                    + "{:05b}".format(fd)
+                    + "{:06b}".format(function), linha)
+    return
 
 
 instructionsType = {
@@ -221,15 +223,27 @@ instructionsType = {
     'c.eq.d': tipo_fmt, 'c.eq.s': tipo_fmt, 'mul.d': tipo_fmt, 'mul.s': tipo_fmt,
     'div.d': tipo_fmt, 'div.s': tipo_fmt
 }
+
+
+def escrever_output(sla, linha):
+    if linha != "":
+        linha = ("% " + linha + " %").replace('\n', '')
+    print("{0:08x} : {1:08x} ; {2}".format(iText, int(sla, 2), linha))
+    with open('input_text.mif', 'a') as saidaText:
+        saidaText.write("{0:08x} : {1:08x} ; {2}\n".format(iText, int(sla, 2), linha))
+
+
 # limpa o arquivo de output para a próxima execução
 with open('input_text.mif', 'w'):
     pass
 with open('input_data.mif', 'w'):
     pass
 
+# globais
+iData = 0
+iText = 0
 with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
-    iText = 0
     #   grava as labels em um dicionário
     for linha in listaComandos:
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
@@ -285,20 +299,11 @@ with open('input.asm') as entrada:
                 imm_bin = '{:032b}'.format(imm)
                 imm1 = str(int(imm_bin[0:16], 2))
                 imm2 = str(int(imm_bin[16:32], 2))
-                sla = tipo_i(['lui', 'at', imm1])
-                print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(sla, 2), linha.replace('\n', '')))
-                with open('input_text.mif', 'a') as saidaText:
-                    saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(sla, 2), linha.replace('\n', '')))
+                tipo_i(['lui', 'at', imm1], linha)
                 iText += 1
-                sla = tipo_i(['ori', instrucao[1], 'at', imm2])
-                print("{0:08x} : {1:08x} ;\n".format(iText, int(sla, 2)))
-                with open('input_text.mif', 'a') as saidaText:
-                    saidaText.write(
-                        "{0:08x} : {1:08x} ;\n".format(iText, int(sla, 2)))
+                linha = ""
+                tipo_i(['ori', instrucao[1], 'at', imm2], linha)
                 iText += 1
                 continue
-            sla = instructionsType[instrucao[0]](instrucao)
-            print("{0:08x} : {1:08x} ; % {2} %".format(iText, int(sla, 2), linha.replace('\n', '')))
-            with open('input_text.mif', 'a') as saidaText:
-                saidaText.write("{0:08x} : {1:08x} ; % {2} %\n".format(iText, int(sla, 2), linha.replace('\n', '')))
+            instructionsType[instrucao[0]](instrucao, linha)
             iText += 1
