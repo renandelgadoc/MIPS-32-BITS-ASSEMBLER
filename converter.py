@@ -121,7 +121,7 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 
 def branch_target_adress(label):
-    bta = labels[label] - iText
+    bta = labels[label] - i_text
     return str(bta)
 
 
@@ -228,20 +228,34 @@ instructionsType = {
 def escrever_output(sla, linha):
     if linha != "":
         linha = ("% " + linha + " %").replace('\n', '')
-    print("{0:08x} : {1:08x} ; {2}".format(iText, int(sla, 2), linha))
-    with open('input_text.mif', 'a') as saidaText:
-        saidaText.write("{0:08x} : {1:08x} ; {2}\n".format(iText, int(sla, 2), linha))
+    print("{0:08x} : {1:08x} ; {2}".format(i_text, int(sla, 2), linha))
+    with open('input_text.mif', 'a') as saida_text:
+        saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
 
 
 # limpa o arquivo de output para a próxima execução
-with open('input_text.mif', 'w'):
+with open('input_text.mif', 'w') as arquivo_text:
+    arquivo_text.write('DEPTH = 4096;\n')
+    arquivo_text.write('WIDTH = 32;\n')
+    arquivo_text.write('ADDRESS_RADIX = HEX;\n')
+    arquivo_text.write('DATA_RADIX = HEX;\n')
+    arquivo_text.write('CONTENT\n')
+    arquivo_text.write('BEGIN\n')
+    arquivo_text.write('\n')
     pass
-with open('input_data.mif', 'w'):
+with open('input_data.mif', 'w') as arquivo_data:
+    arquivo_data.write('DEPTH = 16384;\n')
+    arquivo_data.write('WIDTH = 32;\n')
+    arquivo_data.write('ADDRESS_RADIX = HEX;\n')
+    arquivo_data.write('DATA_RADIX = HEX;\n')
+    arquivo_data.write('CONTENT\n')
+    arquivo_data.write('BEGIN\n')
+    arquivo_data.write('\n')
     pass
 
 # globais
-iData = 0
-iText = 0
+i_data = 0
+i_text = 0
 with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
     #   grava as labels em um dicionário
@@ -255,12 +269,12 @@ with open('input.asm') as entrada:
         if campo == '.text':
             primeiro_elemento = linha.split(" ")[0]
             if ":" in primeiro_elemento:
-                labels[primeiro_elemento.replace(':', '')] = int(iText)
-            iText += 1
+                labels[primeiro_elemento.replace(':', '')] = int(i_text)
+            i_text += 1
             if 'li' in linha:
-                iText += 1
-    iText = 0
-    iData = 0
+                i_text += 1
+    i_text = 0
+    i_data = 0
     for linha in listaComandos:
         linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
             '\n').strip(" ")
@@ -282,10 +296,10 @@ with open('input.asm') as entrada:
             words_data.append(word_armazenar)
             words = linha_formatada.split(" ")[2:]
             for word in words:
-                print("{0:08x} : {1:08x};".format(iData, int(word, 16)))
-                with open('input_data.mif', 'a') as saidaData:
-                    saidaData.write("{0:08x} : {1:08x};\n".format(iData, int(word, 16)))
-                iData += 1
+                print("{0:08x} : {1:08x};".format(i_data, int(word, 16)))
+                with open('input_data.mif', 'a') as saida_data:
+                    saida_data.write("{0:08x} : {1:08x};\n".format(i_data, int(word, 16)))
+                i_data += 1
         elif campo == '.text':
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
@@ -300,10 +314,16 @@ with open('input.asm') as entrada:
                 imm1 = str(int(imm_bin[0:16], 2))
                 imm2 = str(int(imm_bin[16:32], 2))
                 tipo_i(['lui', 'at', imm1], linha)
-                iText += 1
+                i_text += 1
                 linha = ""
                 tipo_i(['ori', instrucao[1], 'at', imm2], linha)
-                iText += 1
+                i_text += 1
                 continue
             instructionsType[instrucao[0]](instrucao, linha)
-            iText += 1
+            i_text += 1
+    with open('input_text.mif', 'a') as saida_text:
+        saida_text.write('\n')
+        saida_text.write('END;\n')
+    with open('input_data.mif', 'a') as saida_data:
+        saida_data.write('\n')
+        saida_data.write('END;\n')
