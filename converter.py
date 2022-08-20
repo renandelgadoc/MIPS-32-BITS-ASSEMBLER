@@ -36,7 +36,7 @@ words_data = []
 words_nome = []
 
 
-def tipo_r(lista_de_parametros, linha):
+def tipo_r(lista_de_parametros, linha, numero_linha):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r']
     shamt_x = 0
@@ -83,11 +83,11 @@ def tipo_r(lista_de_parametros, linha):
                     + "{:05b}".format(registers[rt])
                     + "{:05b}".format(registers[rd])
                     + "{:05b}".format(shamt_x)
-                    + "{:06b}".format(function), linha)
+                    + "{:06b}".format(function), linha, numero_linha)
     return
 
 
-def tipo_r2(lista_de_parametros, linha):
+def tipo_r2(lista_de_parametros, linha, numero_linha):
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r2']
     shamt_x = 0
@@ -109,7 +109,7 @@ def tipo_r2(lista_de_parametros, linha):
                     + "{:05b}".format(registers[rt])
                     + "{:05b}".format(registers[rd])
                     + "{:05b}".format(shamt_x)
-                    + "{:06b}".format(function), linha)
+                    + "{:06b}".format(function), linha, numero_linha)
     return
 
 
@@ -121,11 +121,11 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 
 def branch_target_adress(label):
-    bta = labels[label] - i_text
+    bta = labels[label] - i_text - 1
     return str(bta)
 
 
-def tipo_i(lista_de_parametros, linha):
+def tipo_i(lista_de_parametros, linha, numero_linha):
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
         operacao, rs, label = lista_de_parametros
@@ -164,18 +164,18 @@ def tipo_i(lista_de_parametros, linha):
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:05b}".format(rs)
                     + "{:05b}".format(rt)
-                    + imm, linha)
+                    + imm, linha, numero_linha)
     return
 
 
-def tipo_j(lista_de_parametros, linha):
+def tipo_j(lista_de_parametros, linha, numero_linha):
     operacao = lista_de_parametros[0]
     label = labels[lista_de_parametros[1]]
     escrever_output("{:06b}".format(opCode[operacao])
-                    + "{:026b}".format(label), linha)
+                    + "{:026b}".format(label), linha, numero_linha)
 
 
-def tipo_fmt(lista_de_parametros, linha):
+def tipo_fmt(lista_de_parametros, linha, numero_linha):
     operacao = lista_de_parametros[0]
     op_code_x = 17
     if operacao.split('.')[0] == 'c':
@@ -200,7 +200,7 @@ def tipo_fmt(lista_de_parametros, linha):
                     + "{:05b}".format(ft)
                     + "{:05b}".format(fs)
                     + "{:05b}".format(fd)
-                    + "{:06b}".format(function), linha)
+                    + "{:06b}".format(function), linha, numero_linha)
     return
 
 
@@ -225,9 +225,9 @@ instructionsType = {
 }
 
 
-def escrever_output(sla, linha):
+def escrever_output(sla, linha, numero_linha):
     if linha != "":
-        linha = ("% " + linha + " %").replace('\n', '')
+        linha = ("% " + str(numero_linha) + ': ' + linha + " %").replace('\n', '')
     print("{0:08x} : {1:08x} ; {2}".format(i_text, int(sla, 2), linha))
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
@@ -259,7 +259,7 @@ i_text = 0
 with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
     #   grava as labels em um dicionário
-    for linha in listaComandos:
+    for numero_linha, linha in enumerate(listaComandos):
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
         if linha == '':
             continue
@@ -271,11 +271,12 @@ with open('input.asm') as entrada:
             if ":" in primeiro_elemento:
                 labels[primeiro_elemento.replace(':', '')] = int(i_text)
             i_text += 1
-            if 'li' in linha:
+            if 'li' in linha or 'la' in linha:
                 i_text += 1
     i_text = 0
     i_data = 0
-    for linha in listaComandos:
+    for numero_linha, linha in enumerate(listaComandos):
+        numero_linha += 1
         linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
             '\n').strip(" ")
         while "  " in linha_formatada:
@@ -289,7 +290,7 @@ with open('input.asm') as entrada:
         if campo == '.data':
             linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
             nome_word = linha_word[0]
-            word_armazenar = [nome_word]
+            word_armazenar = [nome_word, hex(i_data)]
             words_nome.append(nome_word)
             for elemento in linha_word[1:]:
                 word_armazenar.append(int(elemento, 16))
@@ -298,8 +299,8 @@ with open('input.asm') as entrada:
             for word in words:
                 print("{0:08x} : {1:08x};".format(i_data, int(word, 16)))
                 with open('input_data.mif', 'a') as saida_data:
-                    saida_data.write("{0:08x} : {1:08x};\n".format(i_data, int(word, 16)))
-                i_data += 1
+                    saida_data.write("{0:08x} : {1:08x};\n".format(int(i_data/4), int(word, 16)))
+                i_data += 4
         elif campo == '.text':
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
@@ -313,13 +314,24 @@ with open('input.asm') as entrada:
                 imm_bin = '{:032b}'.format(imm)
                 imm1 = str(int(imm_bin[0:16], 2))
                 imm2 = str(int(imm_bin[16:32], 2))
-                tipo_i(['lui', 'at', imm1], linha)
+                tipo_i(['lui', 'at', imm1], linha, numero_linha)
                 i_text += 1
                 linha = ""
-                tipo_i(['ori', instrucao[1], 'at', imm2], linha)
+                tipo_i(['ori', instrucao[1], 'at', imm2], linha, numero_linha)
                 i_text += 1
                 continue
-            instructionsType[instrucao[0]](instrucao, linha)
+            elif instrucao[0] == 'la':
+                if instrucao[2] in words_nome:
+                    data_endereco = words_data[words_nome.index(instrucao[2])][1]
+                else:
+                    continue
+                tipo_i(['lui', 'at', '0x00001001'], linha, numero_linha)
+                i_text += 1
+                linha = ''
+                tipo_i(['ori', instrucao[1], 'at', data_endereco], linha, numero_linha)
+                i_text += 1
+                continue
+            instructionsType[instrucao[0]](instrucao, linha, numero_linha)
             i_text += 1
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write('\n')

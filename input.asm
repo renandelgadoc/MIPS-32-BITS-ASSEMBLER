@@ -58,3 +58,5 @@ xori $t6,$t5, -10
 ori $t6, $t5, -10
 addi $t5, $t4,            10
 andi $t6, $t5, -10
+la      $s0, A  
+li $t0, 0x10010000
