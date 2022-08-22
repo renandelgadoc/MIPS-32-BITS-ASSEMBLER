@@ -10,7 +10,7 @@ registers = {
 }
 
 opCode = {
-    'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'slti': 10,
+    'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'li': 9,  'slti': 10,
     'sltiu': 11,
     'andi': 12,
     'ori': 13, 'xori': 14, 'lui': 15, 'lb': 32, 'sb': 38, 'lw': 35, 'sw': 43,
@@ -121,7 +121,7 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 
 def branch_target_adress(label):
-    bta = labels[label] - i_text - 1
+    bta = labels[label] - (i_text + 1)
     return str(bta)
 
 
@@ -131,14 +131,18 @@ def tipo_i(lista_de_parametros, linha, numero_linha):
         operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
         rs = registers[rs]
+        if 'x' in label:
+            label = int(instrucao[2], 16)
         imm = branch_target_adress(label)
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
         operacao, rs, rt, label = lista_de_parametros
         rt = registers[rt]
         rs = registers[rs]
+        if 'x' in label:
+            label = int(instrucao[2], 16)
         imm = branch_target_adress(label)
     elif len(lista_de_parametros) == 3:
-        if lista_de_parametros[0] == 'lui':
+        if lista_de_parametros[0] == 'lui' or lista_de_parametros[0] == 'li':
             rs = registers['zero']
             operacao, rt, imm = lista_de_parametros
             rt = registers[rt]
@@ -156,15 +160,37 @@ def tipo_i(lista_de_parametros, linha, numero_linha):
         imm = int(imm, 16)
     else:
         imm = int(imm)
+
+    imm_bin = '{:032b}'.format(int((imm**2)**(1/2)))
     if imm < 0:
-        imm = transforma_negativo_em_complemento_de_2("{:016b}".format((imm * -1) - 1))
+        imm = transforma_negativo_em_complemento_de_2('{:032b}'.format((imm * -1) - 1))
     else:
-        imm = "{:016b}".format(imm)
-    # retorna a word
+        imm = imm_bin
+
+    imm_mais_significativo, imm_menos_significativo = imm[:16], imm[16:]
+    if imm_bin[:16] != "0000000000000000":
+        escrever_output("{:06b}".format(opCode['lui'])
+                        + "{:05b}".format(registers['zero'])
+                        + "{:05b}".format(registers['at'])
+                        + imm_mais_significativo, linha, numero_linha)
+        if operacao == 'li':
+            escrever_output("{:06b}".format(opCode['ori'])
+                            + "{:05b}".format(registers['at'])
+                            + "{:05b}".format(rt)
+                            + imm_menos_significativo, "", numero_linha)
+            return
+        escrever_output("{:06b}".format(opCode['ori'])
+                        + "{:05b}".format(registers['at'])
+                        + "{:05b}".format(registers['at'])
+                        + imm_menos_significativo, "", numero_linha)
+        sla = list(registers.keys())
+        tipo_r([operacao.replace('i', ''), sla[list(registers.values()).index(rt)], sla[list(registers.values()).index(rs)], "at"], "", numero_linha)
+        return
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:05b}".format(rs)
                     + "{:05b}".format(rt)
-                    + imm, linha, numero_linha)
+                    + imm_menos_significativo, linha, numero_linha)
+
     return
 
 
@@ -305,21 +331,6 @@ with open('input.asm') as entrada:
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
                 instrucao.pop(0)
-            if instrucao[0] == 'li':
-                imm = instrucao[2]
-                if 'x' in imm:
-                    imm = int(instrucao[2], 16)
-                else:
-                    imm = int(instrucao[2])
-                imm_bin = '{:032b}'.format(imm)
-                imm1 = str(int(imm_bin[0:16], 2))
-                imm2 = str(int(imm_bin[16:32], 2))
-                tipo_i(['lui', 'at', imm1], linha, numero_linha)
-                i_text += 1
-                linha = ""
-                tipo_i(['ori', instrucao[1], 'at', imm2], linha, numero_linha)
-                i_text += 1
-                continue
             elif instrucao[0] == 'la':
                 if instrucao[2] in words_nome:
                     data_endereco = words_data[words_nome.index(instrucao[2])][1]
