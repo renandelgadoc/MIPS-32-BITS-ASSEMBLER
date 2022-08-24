@@ -36,7 +36,8 @@ words_data = []
 words_nome = []
 
 
-def tipo_r(lista_de_parametros, linha, numero_linha):
+def tipo_r(lista_de_parametros, numero_linha):
+    global linha
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r']
     shamt_x = 0
@@ -87,7 +88,8 @@ def tipo_r(lista_de_parametros, linha, numero_linha):
     return
 
 
-def tipo_r2(lista_de_parametros, linha, numero_linha):
+def tipo_r2(lista_de_parametros, numero_linha):
+    global linha
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r2']
     shamt_x = 0
@@ -114,6 +116,10 @@ def tipo_r2(lista_de_parametros, linha, numero_linha):
 
 
 def transforma_negativo_em_complemento_de_2(imm):
+    if imm > 0:
+        return '{:032b}'.format(imm)
+    imm = (imm * -1) - 1
+    imm = '{:032b}'.format(imm)
     imm = list(imm)
     for i in range(0, len(imm)):
         imm[i] = '0' if imm[i] == '1' else '1'
@@ -122,24 +128,25 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 def branch_target_adress(label):
     bta = labels[label] - (i_text + 1)
-    return str(bta)
+    return bta
 
+def converte_string_para_inteiro(n):
+    if 'x' in n:
+        return int(n, 16)
+    return int(n)
 
-def tipo_i(lista_de_parametros, linha, numero_linha):
+def tipo_i(lista_de_parametros, numero_linha):
+    global linha
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
         operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
         rs = registers[rs]
-        if 'x' in label:
-            label = int(instrucao[2], 16)
         imm = branch_target_adress(label)
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
         operacao, rs, rt, label = lista_de_parametros
         rt = registers[rt]
         rs = registers[rs]
-        if 'x' in label:
-            label = int(instrucao[2], 16)
         imm = branch_target_adress(label)
     elif len(lista_de_parametros) == 3:
         if lista_de_parametros[0] == 'lui' or lista_de_parametros[0] == 'li':
@@ -151,24 +158,20 @@ def tipo_i(lista_de_parametros, linha, numero_linha):
             imm, rs = var[:-1].split("(")
             rs = registers[rs]
             rt = registers[rt]
+        imm = converte_string_para_inteiro(imm)
     else:
         operacao, rt, rs, imm = lista_de_parametros
         rs = registers[rs]
         rt = registers[rt]
-        # transforma o immediate em binário complemento de 2
-    if 'x' in imm:
-        imm = int(imm, 16)
-    else:
-        imm = int(imm)
+        imm = converte_string_para_inteiro(imm)
 
-    imm_bin = '{:032b}'.format(int((imm**2)**(1/2)))
-    if imm < 0:
-        imm = transforma_negativo_em_complemento_de_2('{:032b}'.format((imm * -1) - 1))
-    else:
-        imm = imm_bin
+    # transforma o immediate em binário complemento de 2
 
-    imm_mais_significativo, imm_menos_significativo = imm[:16], imm[16:]
-    if imm_bin[:16] != "0000000000000000":
+    imm_bin = transforma_negativo_em_complemento_de_2(imm)
+
+    imm_mais_significativo, imm_menos_significativo = imm_bin[:16], imm_bin[16:]
+
+    if abs(imm) > 65535:
         escrever_output("{:06b}".format(opCode['lui'])
                         + "{:05b}".format(registers['zero'])
                         + "{:05b}".format(registers['at'])
@@ -183,8 +186,9 @@ def tipo_i(lista_de_parametros, linha, numero_linha):
                         + "{:05b}".format(registers['at'])
                         + "{:05b}".format(registers['at'])
                         + imm_menos_significativo, "", numero_linha)
-        sla = list(registers.keys())
-        tipo_r([operacao.replace('i', ''), sla[list(registers.values()).index(rt)], sla[list(registers.values()).index(rs)], "at"], "", numero_linha)
+        lista_valores = list(registers.keys())
+        linha = ""
+        tipo_r([operacao.replace('i', ''), lista_valores[list(registers.values()).index(rt)], lista_valores[list(registers.values()).index(rs)], "at"], numero_linha)
         return
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:05b}".format(rs)
@@ -194,14 +198,16 @@ def tipo_i(lista_de_parametros, linha, numero_linha):
     return
 
 
-def tipo_j(lista_de_parametros, linha, numero_linha):
+def tipo_j(lista_de_parametros, numero_linha):
+    global linha
     operacao = lista_de_parametros[0]
     label = labels[lista_de_parametros[1]]
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:026b}".format(label), linha, numero_linha)
 
 
-def tipo_fmt(lista_de_parametros, linha, numero_linha):
+def tipo_fmt(lista_de_parametros, numero_linha):
+    global linha
     operacao = lista_de_parametros[0]
     op_code_x = 17
     if operacao.split('.')[0] == 'c':
@@ -252,12 +258,13 @@ instructionsType = {
 
 
 def escrever_output(sla, linha, numero_linha):
+    global i_text
     if linha != "":
         linha = ("% " + str(numero_linha) + ': ' + linha + " %").replace('\n', '')
     print("{0:08x} : {1:08x} ; {2}".format(i_text, int(sla, 2), linha))
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
-
+    i_text += 1
 
 # limpa o arquivo de output para a próxima execução
 with open('input_text.mif', 'w') as arquivo_text:
@@ -331,19 +338,19 @@ with open('input.asm') as entrada:
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
                 instrucao.pop(0)
-            elif instrucao[0] == 'la':
+            if instrucao[0] == 'la':
                 if instrucao[2] in words_nome:
                     data_endereco = words_data[words_nome.index(instrucao[2])][1]
                 else:
                     continue
-                tipo_i(['lui', 'at', '0x00001001'], linha, numero_linha)
+                tipo_i(['lui', 'at', '0x00001001'], numero_linha)
                 i_text += 1
                 linha = ''
-                tipo_i(['ori', instrucao[1], 'at', data_endereco], linha, numero_linha)
+                tipo_i(['ori', instrucao[1], 'at', data_endereco], numero_linha)
                 i_text += 1
                 continue
-            instructionsType[instrucao[0]](instrucao, linha, numero_linha)
-            i_text += 1
+            else:
+                instructionsType[instrucao[0]](instrucao, numero_linha)
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write('\n')
         saida_text.write('END;\n')
