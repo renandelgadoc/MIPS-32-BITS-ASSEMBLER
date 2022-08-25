@@ -144,7 +144,7 @@ def tipo_i(lista_de_parametros, numero_linha):
         operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
         rs = registers[rs]
-        imm = branch_target_adress(label,numero_linha)
+        imm = branch_target_adress(label, numero_linha)
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
         operacao, rs, rt, label = lista_de_parametros
         rt = registers[rt]
@@ -270,7 +270,6 @@ def escrever_output(sla, linha, numero_linha):
     global i_text
     if linha != "":
         linha = ("% " + str(numero_linha) + ': ' + linha + " %").replace('\n', '')
-    print("{0:08x} : {1:08x} ; {2}".format(i_text, int(sla, 2), linha))
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
     i_text += 1
@@ -299,7 +298,7 @@ with open('input_data.mif', 'w') as arquivo_data:
 # globais
 i_data = 0x10010000
 i_text = 0
-with open('Nivel2-Dia2-1-2018-TD.asm') as entrada:
+with open('input.asm') as entrada:
     listaComandos = entrada.readlines()
     #   grava as labels em um dicionário
     for numero_linha, linha in enumerate(listaComandos):
@@ -321,7 +320,6 @@ with open('Nivel2-Dia2-1-2018-TD.asm') as entrada:
         while "  " in linha_formatada:
             linha_formatada = linha_formatada.replace('  ', ' ')
         if linha_formatada == '':
-            print()
             continue
         elif linha_formatada == '.data' or linha_formatada == '.text':
             campo = linha_formatada
@@ -342,3 +340,5 @@ with open('Nivel2-Dia2-1-2018-TD.asm') as entrada:
     with open('input_data.mif', 'a') as saida_data:
         saida_data.write('\n')
         saida_data.write('END;\n')
+print('Execução concluida')
+print('Arquivos de saída gerados')
