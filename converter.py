@@ -1,3 +1,6 @@
+import sys
+nome_arquivo = sys.argv[1]
+
 registers = {
     'zero': 0, 'at': 1, 'v0': 2, 'v1': 3,
     'a0': 4, 'a1': 5, 'a2': 6, 'a3': 7,
@@ -268,15 +271,16 @@ instructionsType = {
 
 def escrever_output(sla, linha, numero_linha):
     global i_text
+    global nome_arquivo
     if linha != "":
         linha = ("% " + str(numero_linha) + ': ' + linha + " %").replace('\n', '')
-    with open('input_text.mif', 'a') as saida_text:
+    with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'a') as saida_text:
         saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
     i_text += 1
 
 
 # limpa o arquivo de output para a próxima execução
-with open('input_text.mif', 'w') as arquivo_text:
+with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'w') as arquivo_text:
     arquivo_text.write('DEPTH = 4096;\n')
     arquivo_text.write('WIDTH = 32;\n')
     arquivo_text.write('ADDRESS_RADIX = HEX;\n')
@@ -285,7 +289,7 @@ with open('input_text.mif', 'w') as arquivo_text:
     arquivo_text.write('BEGIN\n')
     arquivo_text.write('\n')
     pass
-with open('input_data.mif', 'w') as arquivo_data:
+with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'w') as arquivo_data:
     arquivo_data.write('DEPTH = 16384;\n')
     arquivo_data.write('WIDTH = 32;\n')
     arquivo_data.write('ADDRESS_RADIX = HEX;\n')
@@ -298,7 +302,7 @@ with open('input_data.mif', 'w') as arquivo_data:
 # globais
 i_data = 0x10010000
 i_text = 0
-with open('input.asm') as entrada:
+with open(nome_arquivo) as entrada:
     listaComandos = entrada.readlines()
     #   grava as labels em um dicionário
     for numero_linha, linha in enumerate(listaComandos):
@@ -328,16 +332,18 @@ with open('input.asm') as entrada:
             linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
             words[linha_word.pop(0)] = i_data
             for word in linha_word:
+                with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
+                    saida_data.write("{0:08x} : {1:08x};\n".format(int((i_data - 0x10010000)/4), converte_string_para_inteiro(word)))
                 i_data += 4
         elif campo == '.text':
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
                 instrucao.pop(0)
             instructionsType[instrucao[0]](instrucao, numero_linha)
-    with open('input_text.mif', 'a') as saida_text:
+    with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'a') as saida_text:
         saida_text.write('\n')
         saida_text.write('END;\n')
-    with open('input_data.mif', 'a') as saida_data:
+    with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
         saida_data.write('\n')
         saida_data.write('END;\n')
 print('Execução concluida')
