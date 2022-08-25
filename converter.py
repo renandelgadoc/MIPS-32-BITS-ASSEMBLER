@@ -10,7 +10,8 @@ registers = {
 }
 
 opCode = {
-    'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'li': 9,  'slti': 10,
+    'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'li': 9,
+    'slti': 10,
     'sltiu': 11,
     'andi': 12,
     'ori': 13, 'xori': 14, 'lui': 15, 'lb': 32, 'sb': 38, 'lw': 35, 'sw': 43,
@@ -32,8 +33,7 @@ functFMT = {
 }
 
 labels = {}
-words_data = []
-words_nome = []
+words = {}
 
 
 def tipo_r(lista_de_parametros, numero_linha):
@@ -116,24 +116,26 @@ def tipo_r2(lista_de_parametros, numero_linha):
 
 
 def transforma_negativo_em_complemento_de_2(imm):
-    if imm > 0:
+    if imm >= 0:
         return '{:032b}'.format(imm)
     imm = (imm * -1) - 1
-    imm = '{:032b}'.format(imm)
+    imm = '{:033b}'.format(imm)[1:]
     imm = list(imm)
     for i in range(0, len(imm)):
         imm[i] = '0' if imm[i] == '1' else '1'
     return ''.join(imm)
 
 
-def branch_target_adress(label):
-    bta = labels[label] - (i_text + 1)
+def branch_target_adress(label, numero_linha):
+    bta = labels[label] - (numero_linha + 1)
     return bta
+
 
 def converte_string_para_inteiro(n):
     if 'x' in n:
         return int(n, 16)
     return int(n)
+
 
 def tipo_i(lista_de_parametros, numero_linha):
     global linha
@@ -142,23 +144,29 @@ def tipo_i(lista_de_parametros, numero_linha):
         operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
         rs = registers[rs]
-        imm = branch_target_adress(label)
+        imm = branch_target_adress(label,numero_linha)
     elif lista_de_parametros[0] == "beq" or lista_de_parametros[0] == "bne":
         operacao, rs, rt, label = lista_de_parametros
         rt = registers[rt]
         rs = registers[rs]
-        imm = branch_target_adress(label)
+        imm = branch_target_adress(label, numero_linha)
     elif len(lista_de_parametros) == 3:
-        if lista_de_parametros[0] == 'lui' or lista_de_parametros[0] == 'li':
+        if instrucao[0] == 'la':
+            rs = registers['zero']
+            operacao, rt, word = lista_de_parametros
+            imm = words[word]
+            rt = registers[rt]
+        elif lista_de_parametros[0] == 'lui' or lista_de_parametros[0] == 'li':
             rs = registers['zero']
             operacao, rt, imm = lista_de_parametros
             rt = registers[rt]
+            imm = converte_string_para_inteiro(imm)
         else:
             operacao, rt, var = lista_de_parametros
             imm, rs = var[:-1].split("(")
             rs = registers[rs]
             rt = registers[rt]
-        imm = converte_string_para_inteiro(imm)
+            imm = converte_string_para_inteiro(imm)
     else:
         operacao, rt, rs, imm = lista_de_parametros
         rs = registers[rs]
@@ -176,7 +184,7 @@ def tipo_i(lista_de_parametros, numero_linha):
                         + "{:05b}".format(registers['zero'])
                         + "{:05b}".format(registers['at'])
                         + imm_mais_significativo, linha, numero_linha)
-        if operacao == 'li':
+        if operacao == 'li' or operacao == 'la':
             escrever_output("{:06b}".format(opCode['ori'])
                             + "{:05b}".format(registers['at'])
                             + "{:05b}".format(rt)
@@ -188,7 +196,8 @@ def tipo_i(lista_de_parametros, numero_linha):
                         + imm_menos_significativo, "", numero_linha)
         lista_valores = list(registers.keys())
         linha = ""
-        tipo_r([operacao.replace('i', ''), lista_valores[list(registers.values()).index(rt)], lista_valores[list(registers.values()).index(rs)], "at"], numero_linha)
+        tipo_r([operacao.replace('i', ''), lista_valores[list(registers.values()).index(rt)],
+                lista_valores[list(registers.values()).index(rs)], "at"], numero_linha)
         return
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:05b}".format(rs)
@@ -247,7 +256,7 @@ instructionsType = {
     'lw': tipo_i, 'sw': tipo_i, 'beq': tipo_i, 'bne': tipo_i, 'xori': tipo_i, 'lb': tipo_i, 'sb': tipo_i,
     'addi': tipo_i,
     'addiu': tipo_i, 'andi': tipo_i, 'ori': tipo_i, 'lui': tipo_i, 'slti': tipo_i, 'sltiu': tipo_i, 'bgez': tipo_i,
-    'bgezal': tipo_i, 'li': tipo_i,
+    'bgezal': tipo_i, 'li': tipo_i, 'la': tipo_i,
 
     'j': tipo_j, 'jal': tipo_j,
 
@@ -265,6 +274,7 @@ def escrever_output(sla, linha, numero_linha):
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write("{0:08x} : {1:08x};  {2}\n".format(i_text, int(sla, 2), linha))
     i_text += 1
+
 
 # limpa o arquivo de output para a próxima execução
 with open('input_text.mif', 'w') as arquivo_text:
@@ -287,12 +297,13 @@ with open('input_data.mif', 'w') as arquivo_data:
     pass
 
 # globais
-i_data = 0
+i_data = 0x10010000
 i_text = 0
-with open('input.asm') as entrada:
+with open('Nivel2-Dia2-1-2018-TD.asm') as entrada:
     listaComandos = entrada.readlines()
     #   grava as labels em um dicionário
     for numero_linha, linha in enumerate(listaComandos):
+        numero_linha += 1
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
         if linha == '':
             continue
@@ -300,14 +311,9 @@ with open('input.asm') as entrada:
             campo = linha
             continue
         if campo == '.text':
-            primeiro_elemento = linha.split(" ")[0]
+            primeiro_elemento, segundo_elemento = linha.split(" ")[:2]
             if ":" in primeiro_elemento:
-                labels[primeiro_elemento.replace(':', '')] = int(i_text)
-            i_text += 1
-            if 'li' in linha or 'la' in linha:
-                i_text += 1
-    i_text = 0
-    i_data = 0
+                labels[primeiro_elemento.replace(':', '')] = int(numero_linha)
     for numero_linha, linha in enumerate(listaComandos):
         numero_linha += 1
         linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
@@ -322,35 +328,14 @@ with open('input.asm') as entrada:
             continue
         if campo == '.data':
             linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
-            nome_word = linha_word[0]
-            word_armazenar = [nome_word, hex(i_data)]
-            words_nome.append(nome_word)
-            for elemento in linha_word[1:]:
-                word_armazenar.append(int(elemento, 16))
-            words_data.append(word_armazenar)
-            words = linha_formatada.split(" ")[2:]
-            for word in words:
-                print("{0:08x} : {1:08x};".format(i_data, int(word, 16)))
-                with open('input_data.mif', 'a') as saida_data:
-                    saida_data.write("{0:08x} : {1:08x};\n".format(int(i_data/4), int(word, 16)))
+            words[linha_word.pop(0)] = i_data
+            for word in linha_word:
                 i_data += 4
         elif campo == '.text':
             instrucao = linha_formatada.split(" ")
             if ':' in instrucao[0]:
                 instrucao.pop(0)
-            if instrucao[0] == 'la':
-                if instrucao[2] in words_nome:
-                    data_endereco = words_data[words_nome.index(instrucao[2])][1]
-                else:
-                    continue
-                tipo_i(['lui', 'at', '0x00001001'], numero_linha)
-                i_text += 1
-                linha = ''
-                tipo_i(['ori', instrucao[1], 'at', data_endereco], numero_linha)
-                i_text += 1
-                continue
-            else:
-                instructionsType[instrucao[0]](instrucao, numero_linha)
+            instructionsType[instrucao[0]](instrucao, numero_linha)
     with open('input_text.mif', 'a') as saida_text:
         saida_text.write('\n')
         saida_text.write('END;\n')
