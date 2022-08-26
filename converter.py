@@ -1,6 +1,15 @@
 import sys
-nome_arquivo = sys.argv[1]
+import os
 
+# Nome do arquivo de entrada pode ser especificado por argumento na hora de executar.
+# Caso não seja feito isso, o mesmo poderá ser digitado pelo shell.
+try:
+    nome_arquivo = sys.argv[1]
+except:
+    nome_arquivo = input("Digite o nome do arquivo: ")
+
+# Dicionário de registradores.
+# Retorna o valor de acordo com o nome.
 registers = {
     'zero': 0, 'at': 1, 'v0': 2, 'v1': 3,
     'a0': 4, 'a1': 5, 'a2': 6, 'a3': 7,
@@ -12,6 +21,8 @@ registers = {
     'gp': 28, 'sp': 29, 'fp': 30, 'ra': 31
 }
 
+# Dicionário de opCodes.
+# Retorna o valor de acordo com a instrução.
 opCode = {
     'tipo_r': 0, 'bgez': 1, 'bgezal': 1, 'j': 2, 'jal': 3, 'beq': 4, 'bne': 5, 'addi': 8, 'addiu': 9, 'li': 9,
     'slti': 10,
@@ -21,25 +32,33 @@ opCode = {
     'tipo_r2': 28
 }
 
+# Dicionário de instruções.
+# Retorna o valor de acordo com a intrução.
 funct = {
     'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
     'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
     'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9, 'clo': 33, 'madd': 0, 'msubu': 5, 'mul': 2, 'movn': 11
 }
-
+# Dicionário de valores rt dada uma instrução.
 rt_code = {
     'bgez': 1, 'bgezal': 17,
 }
 
+# Dicionário de instrução tipo .FMT.
 functFMT = {
     'add': 0, 'sub': 1, 'mul': 2, 'div': 3
 }
 
+# Declaração de dicionários para armazenar labels do .text e as words do .data.
 labels = {}
 words = {}
 
 
 def tipo_r(lista_de_parametros, numero_linha):
+    """# Função para tratar as instruções tipo R.
+# As instruções tipo R tem um padrão na ordem de parametros passados, mas algumas tem suas peculiaridades.
+# Essas diferenças são tradatas pelos if statements, de acordo com a insutrção passada.
+# Após determinar os valores de cada variável, é chamada uma função para escrever no arquivo de saída."""
     global linha
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r']
@@ -92,6 +111,10 @@ def tipo_r(lista_de_parametros, numero_linha):
 
 
 def tipo_r2(lista_de_parametros, numero_linha):
+    """# Função para tratar as instruções tipo R com semelhanças diferentes da padrão.
+# As instruções que são tratadas nessa função possuem semelhanças bem diferentes das padrões do tipo R.
+# Função criada para diminuir o uso de if statements e otimizar o código.
+# Após determinar os valores de cada variável, é chamada uma função para escrever no arquivo de saída."""
     global linha
     operacao = lista_de_parametros[0]
     op_code_x = opCode['tipo_r2']
@@ -119,6 +142,7 @@ def tipo_r2(lista_de_parametros, numero_linha):
 
 
 def transforma_negativo_em_complemento_de_2(imm):
+    """Tranforma um número negativo em complemento de 2."""
     if imm >= 0:
         return '{:032b}'.format(imm)
     imm = (imm * -1) - 1
@@ -130,19 +154,25 @@ def transforma_negativo_em_complemento_de_2(imm):
 
 
 def branch_target_adress(label, numero_linha):
+    """Calcula a distacia do label até o PC+4."""
     bta = labels[label] - (numero_linha + 1)
     return bta
 
 
 def converte_string_para_inteiro(n):
+    """Converte uma string para um número inteiro."""
     if 'x' in n:
         return int(n, 16)
     return int(n)
 
 
 def tipo_i(lista_de_parametros, numero_linha):
+    """# Função para tratar as instruções tipo I.
+    # As instruções tipo I tem um padrão na ordem de parametros passados, mas algumas tem suas peculiaridades.
+    # Essas diferenças são tradatas pelos if statements, de acordo com a insutrção passada.
+    # Após determinar os valores de cada variável, é chamada uma função para escrever no arquivo de saída."""
     global linha
-    # identifica se a instrução usa immediate e separa cria uma lista com a intrução
+    # identifica se a instrução usa immediate e separa cria uma lista com a intrução.
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
         operacao, rs, label = lista_de_parametros
         rt = rt_code[operacao]
@@ -176,12 +206,13 @@ def tipo_i(lista_de_parametros, numero_linha):
         rt = registers[rt]
         imm = converte_string_para_inteiro(imm)
 
-    # transforma o immediate em binário complemento de 2
-
+    # transforma o immediate em binário complemento de 2.
     imm_bin = transforma_negativo_em_complemento_de_2(imm)
 
     imm_mais_significativo, imm_menos_significativo = imm_bin[:16], imm_bin[16:]
 
+    # Tratamento de immediates muito grande.
+    # Separação em partes mais significativas para ter a formatação correta na saída.
     if abs(imm) > 65535:
         escrever_output("{:06b}".format(opCode['lui'])
                         + "{:05b}".format(registers['zero'])
@@ -211,6 +242,7 @@ def tipo_i(lista_de_parametros, numero_linha):
 
 
 def tipo_j(lista_de_parametros, numero_linha):
+    """# Função para tratar as instruções tipo J."""
     global linha
     operacao = lista_de_parametros[0]
     label = labels[lista_de_parametros[1]]
@@ -219,6 +251,9 @@ def tipo_j(lista_de_parametros, numero_linha):
 
 
 def tipo_fmt(lista_de_parametros, numero_linha):
+    """# Função para tratar as instruções FMT.
+    # As instruções tipo FMT trabalham com ponto flutuante de simples ou dupla precisão.
+    # Para a otimização de código, foi criada uma função específica, reduzindo o uso de if's."""
     global linha
     operacao = lista_de_parametros[0]
     op_code_x = 17
@@ -248,6 +283,8 @@ def tipo_fmt(lista_de_parametros, numero_linha):
     return
 
 
+# Dicionário de tipos de instrução.
+# Determina o tipo da instrução passada.
 instructionsType = {
     'add': tipo_r, 'addu': tipo_r, 'sub': tipo_r, 'subu': tipo_r, 'xor': tipo_r, 'sll': tipo_r,
     'srl': tipo_r, 'and': tipo_r, 'or': tipo_r, 'nor': tipo_r, 'slt': tipo_r, 'mult': tipo_r,
@@ -270,6 +307,7 @@ instructionsType = {
 
 
 def escrever_output(sla, linha, numero_linha):
+    """Função responsável por escrever no arquivo de saída."""
     global i_text
     global nome_arquivo
     if linha != "":
@@ -279,72 +317,102 @@ def escrever_output(sla, linha, numero_linha):
     i_text += 1
 
 
-# limpa o arquivo de output para a próxima execução
-with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'w') as arquivo_text:
-    arquivo_text.write('DEPTH = 4096;\n')
-    arquivo_text.write('WIDTH = 32;\n')
-    arquivo_text.write('ADDRESS_RADIX = HEX;\n')
-    arquivo_text.write('DATA_RADIX = HEX;\n')
-    arquivo_text.write('CONTENT\n')
-    arquivo_text.write('BEGIN\n')
-    arquivo_text.write('\n')
-    pass
-with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'w') as arquivo_data:
-    arquivo_data.write('DEPTH = 16384;\n')
-    arquivo_data.write('WIDTH = 32;\n')
-    arquivo_data.write('ADDRESS_RADIX = HEX;\n')
-    arquivo_data.write('DATA_RADIX = HEX;\n')
-    arquivo_data.write('CONTENT\n')
-    arquivo_data.write('BEGIN\n')
-    arquivo_data.write('\n')
-    pass
+# Verifica se o arquivo de entrada está vazio
+if os.stat(nome_arquivo).st_size == 0:
+    print("O arquivo de entrada está vazio")
+else:
+    # Limpa os arquivos de output para a próxima execução.
+    # Evitar várias escritas repetidas ao executar o códgio várias vezes.
+    with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'w') as arquivo_text:
+        arquivo_text.write('DEPTH = 4096;\n')
+        arquivo_text.write('WIDTH = 32;\n')
+        arquivo_text.write('ADDRESS_RADIX = HEX;\n')
+        arquivo_text.write('DATA_RADIX = HEX;\n')
+        arquivo_text.write('CONTENT\n')
+        arquivo_text.write('BEGIN\n')
+        arquivo_text.write('\n')
+        pass
+    with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'w') as arquivo_data:
+        arquivo_data.write('DEPTH = 16384;\n')
+        arquivo_data.write('WIDTH = 32;\n')
+        arquivo_data.write('ADDRESS_RADIX = HEX;\n')
+        arquivo_data.write('DATA_RADIX = HEX;\n')
+        arquivo_data.write('CONTENT\n')
+        arquivo_data.write('BEGIN\n')
+        arquivo_data.write('\n')
+        pass
 
-# globais
-i_data = 0x10010000
-i_text = 0
-with open(nome_arquivo) as entrada:
-    listaComandos = entrada.readlines()
-    #   grava as labels em um dicionário
-    for numero_linha, linha in enumerate(listaComandos):
-        numero_linha += 1
-        linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
-        if linha == '':
-            continue
-        elif linha == '.data' or linha == '.text':
-            campo = linha
-            continue
-        if campo == '.text':
-            primeiro_elemento, segundo_elemento = linha.split(" ")[:2]
-            if ":" in primeiro_elemento:
-                labels[primeiro_elemento.replace(':', '')] = int(numero_linha)
-    for numero_linha, linha in enumerate(listaComandos):
-        numero_linha += 1
-        linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
-            '\n').strip(" ")
-        while "  " in linha_formatada:
-            linha_formatada = linha_formatada.replace('  ', ' ')
-        if linha_formatada == '':
-            continue
-        elif linha_formatada == '.data' or linha_formatada == '.text':
-            campo = linha_formatada
-            continue
-        if campo == '.data':
-            linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
-            words[linha_word.pop(0)] = i_data
-            for word in linha_word:
-                with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
-                    saida_data.write("{0:08x} : {1:08x};\n".format(int((i_data - 0x10010000)/4), converte_string_para_inteiro(word)))
-                i_data += 4
-        elif campo == '.text':
-            instrucao = linha_formatada.split(" ")
-            if ':' in instrucao[0]:
-                instrucao.pop(0)
-            instructionsType[instrucao[0]](instrucao, numero_linha)
-    with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'a') as saida_text:
-        saida_text.write('\n')
-        saida_text.write('END;\n')
-    with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
-        saida_data.write('\n')
-        saida_data.write('END;\n')
-print('Execução concluida')
-print('Arquivos de saída gerados')
+    # Contadores globais.
+    i_data = 0x10010000
+    i_text = 0
+
+    # Parte onde o arquivo de entrada é aberto.
+    # Primeiramente as labels são armazenadas para serem usadas no código, independente da sua posição no arquivo de input.
+    with open(nome_arquivo) as entrada:
+        campo = ''
+        listaComandos = entrada.readlines()
+        # Grava as labels em um dicionário.
+        for numero_linha, linha in enumerate(listaComandos):
+            numero_linha += 1
+            linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
+            if linha == '':
+                continue
+            elif linha == '.data' or linha == '.text':
+                campo = linha
+                continue
+            if campo == '.text':
+                primeiro_elemento, segundo_elemento = linha.split(" ")[:2]
+                if ":" in primeiro_elemento:
+                    labels[primeiro_elemento.replace(':', '')] = int(numero_linha)
+        # Tratamento do arquivo input.
+        # É analisado linha por linha e o campo é especificado para que tudo seja tratado da maneira correta.
+        for numero_linha, linha in enumerate(listaComandos):
+            numero_linha += 1
+            # Formatação da linha do arquivo input.
+            linha_formatada = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip(
+                '\n').strip(" ")
+            # Remove os espaços duplos.
+            while "  " in linha_formatada:
+                linha_formatada = linha_formatada.replace('  ', ' ')
+            # Pula linhas em branco.
+            if linha_formatada == '':
+                continue
+            # Identifica e salva o campo que o código vai trabalhar, .data ou .text.
+            elif linha_formatada == '.data' or linha_formatada == '.text':
+                campo = linha_formatada
+                continue
+            # Tratamento das linhas do campo .data.
+            # Salva as words num dicionário identificando o seu nome atrelado ao seu endereço.
+            # Escreve as words no arquivo de saída .data.
+            if campo == '.data':
+                linha_word = linha_formatada.replace(':', '').replace('.word ', '').split(' ')
+                words[linha_word.pop(0)] = i_data
+                for word in linha_word:
+                    with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
+                        saida_data.write("{0:08x} : {1:08x};\n".format(int((i_data - 0x10010000) / 4),
+                                                                       converte_string_para_inteiro(word)))
+                    i_data += 4
+            # Tratamendo das linhas do campo .text.
+            # A função do tipo correto da instrução é chamada pela identificação do dicionário dos tipos de instrução.
+            # O dicionário retorna o tipo da instrução, chamando a função correta passando os argumentos da entrada.
+            elif campo == '.text':
+                instrucao = linha_formatada.split(" ")
+                if ':' in instrucao[0]:
+                    instrucao.pop(0)
+                # Verifica se a instrução existe
+                try:
+                    instructionsType[instrucao[0]](instrucao, numero_linha)
+                except:
+                    continue
+
+        # Finaliza os arquivos de saída após passarem por todas as linhas da entrada.
+        with open(nome_arquivo.replace('.asm', '') + '_text.mif', 'a') as saida_text:
+            saida_text.write('\n')
+            saida_text.write('END;\n')
+        with open(nome_arquivo.replace('.asm', '') + '_data.mif', 'a') as saida_data:
+            saida_data.write('\n')
+            saida_data.write('END;\n')
+
+        # Imprime mensagem para notificar que o código foi executado.
+        print('Execução concluida')
+        print('Arquivos de saída gerados')
