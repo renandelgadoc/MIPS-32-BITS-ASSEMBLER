@@ -37,7 +37,8 @@ opCode = {
 funct = {
     'add': 32, 'addu': 33, 'sub': 34, 'subu': 35, 'xor': 38, 'sll': 0, 'srl': 2, 'and': 36,
     'slt': 42, 'or': 37, 'nor': 39, 'mult': 24, 'div': 26, 'mfhi': 16, 'mflo': 18, 'sra': 3,
-    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9, 'clo': 33, 'madd': 0, 'msubu': 5, 'mul': 2, 'movn': 11
+    'srav': 7, 'sltu': 43, 'jr': 8, 'jalr': 9, 'clo': 33, 'madd': 0, 'msubu': 5, 'mul': 2, 'movn': 11,
+    'teq': 52
 }
 # Dicionário de valores rt dada uma instrução.
 rt_code = {
@@ -69,7 +70,7 @@ def tipo_r(lista_de_parametros, numero_linha):
         rd = lista_de_parametros[1]
         rt = lista_de_parametros[2]
         shamt_x = int(lista_de_parametros[3])
-    elif lista_de_parametros[0] == 'mult' or lista_de_parametros[0] == 'div':
+    elif lista_de_parametros[0] == 'mult' or lista_de_parametros[0] == 'div' or lista_de_parametros[0] == 'teq':
         rd = 'zero'
         rs = lista_de_parametros[1]
         rt = lista_de_parametros[2]
@@ -290,7 +291,7 @@ instructionsType = {
     'add': tipo_r, 'addu': tipo_r, 'sub': tipo_r, 'subu': tipo_r, 'xor': tipo_r, 'sll': tipo_r,
     'srl': tipo_r, 'and': tipo_r, 'or': tipo_r, 'nor': tipo_r, 'slt': tipo_r, 'mult': tipo_r,
     'div': tipo_r, 'mfhi': tipo_r, 'mflo': tipo_r, 'sra': tipo_r, 'srav': tipo_r, 'sltu': tipo_r,
-    'jr': tipo_r, 'jalr': tipo_r, 'movn': tipo_r,
+    'jr': tipo_r, 'jalr': tipo_r, 'movn': tipo_r, 'teq': tipo_r,
 
     'clo': tipo_r2, 'madd': tipo_r2, 'msubu': tipo_r2, 'mul': tipo_r2,
 
@@ -356,11 +357,14 @@ with open(nome_arquivo) as entrada:
     # Grava as labels em um dicionário.
     for numero_linha, linha in enumerate(listaComandos):
         numero_linha += 1
+        # Formatação da linha do arquivo input.
         linha = linha.replace('$', '').replace(',', ' ').replace('\t', '').replace('\r', '').strip('\n').strip(" ")
         while "  " in linha:
             linha = linha.replace('  ', ' ')
+        # Pula linhas em branco.
         if linha == '':
             continue
+        # Identifica e salva o campo que o código vai trabalhar, .data ou .text.
         elif linha == '.data' or linha == '.text':
             campo = linha
             continue
@@ -370,23 +374,26 @@ with open(nome_arquivo) as entrada:
             if ":" in instrucaoLabel[0]:
                 labels[instrucaoLabel[0].replace(':', '')] = int(i_text)
                 i_instru += 1
-            if instructionsType[instrucaoLabel[i_instru]].__name__ == 'tipo_i':
-                if len(instrucaoLabel) == i_instru + 3:
-                    imm = instrucaoLabel[i_instru + 2]
-                else:
-                    imm = instrucaoLabel[i_instru + 3]
-                try:
-                    if instrucaoLabel[i_instru] == 'la':
-                        i_text += 1
+            try:
+                if instructionsType[instrucaoLabel[i_instru]].__name__ == 'tipo_i':
+                    if len(instrucaoLabel) == i_instru + 3:
+                        imm = instrucaoLabel[i_instru + 2]
                     else:
-                        imm = converte_string_para_inteiro(imm)
-                        if abs(imm) > 65535:
-                            if instrucaoLabel[i_instru] in ['li']:
-                                i_text += 1
-                            else:
-                                i_text += 2
-                except ValueError:
-                    pass
+                        imm = instrucaoLabel[i_instru + 3]
+                    try:
+                        if instrucaoLabel[i_instru] == 'la':
+                            i_text += 1
+                        else:
+                            imm = converte_string_para_inteiro(imm)
+                            if abs(imm) > 65535:
+                                if instrucaoLabel[i_instru] in ['li']:
+                                    i_text += 1
+                                else:
+                                    i_text += 2
+                    except ValueError:
+                        pass
+            except KeyError:
+                pass
             i_text += 1
     i_text = 0
     # Tratamento do arquivo input.
@@ -427,7 +434,7 @@ with open(nome_arquivo) as entrada:
             # Verifica se a instrução existe
             try:
                 instructionsType[instrucao[0]](instrucao, numero_linha)
-            except:
+            except KeyError:
                 continue
 
     # Finaliza os arquivos de saída após passarem por todas as linhas da entrada.

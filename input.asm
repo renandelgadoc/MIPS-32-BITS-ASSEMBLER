@@ -4,6 +4,8 @@ b: .word 3, 2, 1
 
 .text
 Label:  add $t1,$t2, $t3
+abacaxi
+toq $t1, $t2  
 xor $t4,           	$t1, $t2         		
 		    sll    $t2,$t3, 10
 srl $t2, $t3, 10
@@ -60,3 +62,4 @@ addi $t5, $t4,            10
 andi $t6, $t5, -10
 la      $s0, a
 li $t0, 0x10010000
+teq $t1, $t1
