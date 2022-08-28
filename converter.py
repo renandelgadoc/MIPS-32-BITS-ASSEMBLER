@@ -2,7 +2,7 @@ import sys
 import os
 
 # Nome do arquivo de entrada pode ser especificado por argumento na hora de executar.
-# Caso não seja feito isso, o mesmo poderá ser digitado pelo shell.
+# Caso não seja feito isso, o mesmo poderá ser inserido como input.
 try:
     nome_arquivo = sys.argv[1]
 except IndexError:
@@ -55,7 +55,7 @@ labels = {}
 words = {}
 
 
-def tipo_r(lista_de_parametros, numero_linha):
+def tipo_r(lista_de_parametros):
     """# Função para tratar as instruções tipo R.
 # As instruções tipo R tem um padrão na ordem de parametros passados, mas algumas tem suas peculiaridades.
 # Essas diferenças são tradatas pelos if statements, de acordo com a insutrção passada.
@@ -107,11 +107,11 @@ def tipo_r(lista_de_parametros, numero_linha):
                     + "{:05b}".format(registers[rt])
                     + "{:05b}".format(registers[rd])
                     + "{:05b}".format(shamt_x)
-                    + "{:06b}".format(function), linha, numero_linha)
+                    + "{:06b}".format(function), linha)
     return
 
 
-def tipo_r2(lista_de_parametros, numero_linha):
+def tipo_r2(lista_de_parametros):
     """# Função para tratar as instruções tipo R com semelhanças diferentes da padrão.
 # As instruções que são tratadas nessa função possuem semelhanças bem diferentes das padrões do tipo R.
 # Função criada para diminuir o uso de if statements e otimizar o código.
@@ -138,20 +138,20 @@ def tipo_r2(lista_de_parametros, numero_linha):
                     + "{:05b}".format(registers[rt])
                     + "{:05b}".format(registers[rd])
                     + "{:05b}".format(shamt_x)
-                    + "{:06b}".format(function), linha, numero_linha)
+                    + "{:06b}".format(function), linha)
     return
 
 
-def transforma_negativo_em_complemento_de_2(imm):
-    """Tranforma um número negativo em complemento de 2."""
-    if imm >= 0:
-        return '{:032b}'.format(imm)
-    imm = (imm * -1) - 1
-    imm = '{:033b}'.format(imm)[1:]
-    imm = list(imm)
-    for i in range(0, len(imm)):
-        imm[i] = '0' if imm[i] == '1' else '1'
-    return ''.join(imm)
+def transforma_negativo_em_complemento_de_2(n):
+    """Tranforma um número inteiro na base decimal em complemento de 2."""
+    if n >= 0:
+        return '{:032b}'.format(n)
+    n = (n * -1) - 1
+    n = '{:033b}'.format(n)[1:]
+    n = list(n)
+    for i in range(0, len(n)):
+        n[i] = '0' if n[i] == '1' else '1'
+    return ''.join(n)
 
 
 def branch_target_adress(label):
@@ -162,17 +162,18 @@ def branch_target_adress(label):
 
 
 def converte_string_para_inteiro(n):
-    """Converte uma string para um número inteiro."""
+    """ Converte uma string para um número inteiro
+    com tratamento caso ela esteja na base hexadecimal."""
     if 'x' in n:
         return int(n, 16)
     return int(n)
 
 
-def tipo_i(lista_de_parametros, numero_linha):
-    """# Função para tratar as instruções tipo I.
-    # As instruções tipo I tem um padrão na ordem de parametros passados, mas algumas tem suas peculiaridades.
-    # Essas diferenças são tradatas pelos if statements, de acordo com a insutrção passada.
-    # Após determinar os valores de cada variável, é chamada uma função para escrever no arquivo de saída."""
+def tipo_i(lista_de_parametros):
+    """Função para tratar as instruções tipo I.
+     As instruções tipo I tem um padrão na ordem de parametros passados, mas algumas tem suas peculiaridades.
+     Essas diferenças são tradatas pelos if statements, de acordo com a insutrção passada.
+     Após determinar os valores de cada variável, é chamada uma função para escrever no arquivo de saída."""
     global linha
     # identifica se a instrução usa immediate e separa cria uma lista com a intrução.
     if lista_de_parametros[0] == "bgez" or lista_de_parametros[0] == "bgezal":
@@ -219,40 +220,40 @@ def tipo_i(lista_de_parametros, numero_linha):
         escrever_output("{:06b}".format(opCode['lui'])
                         + "{:05b}".format(registers['zero'])
                         + "{:05b}".format(registers['at'])
-                        + imm_mais_significativo, linha, numero_linha)
+                        + imm_mais_significativo, linha)
         if operacao == 'li' or operacao == 'la':
             escrever_output("{:06b}".format(opCode['ori'])
                             + "{:05b}".format(registers['at'])
                             + "{:05b}".format(rt)
-                            + imm_menos_significativo, "", numero_linha)
+                            + imm_menos_significativo, "")
             return
         escrever_output("{:06b}".format(opCode['ori'])
                         + "{:05b}".format(registers['at'])
                         + "{:05b}".format(registers['at'])
-                        + imm_menos_significativo, "", numero_linha)
+                        + imm_menos_significativo, "")
         lista_valores = list(registers.keys())
         linha = ""
         tipo_r([operacao.replace('i', ''), lista_valores[list(registers.values()).index(rt)],
-                lista_valores[list(registers.values()).index(rs)], "at"], numero_linha)
+                lista_valores[list(registers.values()).index(rs)], "at"])
         return
     escrever_output("{:06b}".format(opCode[operacao])
                     + "{:05b}".format(rs)
                     + "{:05b}".format(rt)
-                    + imm_menos_significativo, linha, numero_linha)
+                    + imm_menos_significativo, linha)
 
     return
 
 
-def tipo_j(lista_de_parametros, numero_linha):
+def tipo_j(lista_de_parametros):
     """# Função para tratar as instruções tipo J."""
     global linha
     operacao = lista_de_parametros[0]
     label = labels[lista_de_parametros[1]]
     escrever_output("{:06b}".format(opCode[operacao])
-                    + "{:026b}".format(label), linha, numero_linha)
+                    + "{:026b}".format(label), linha)
 
 
-def tipo_fmt(lista_de_parametros, numero_linha):
+def tipo_fmt(lista_de_parametros):
     """# Função para tratar as instruções FMT.
     # As instruções tipo FMT trabalham com ponto flutuante de simples ou dupla precisão.
     # Para a otimização de código, foi criada uma função específica, reduzindo o uso de if's."""
@@ -281,7 +282,7 @@ def tipo_fmt(lista_de_parametros, numero_linha):
                     + "{:05b}".format(ft)
                     + "{:05b}".format(fs)
                     + "{:05b}".format(fd)
-                    + "{:06b}".format(function), linha, numero_linha)
+                    + "{:06b}".format(function), linha)
     return
 
 
@@ -308,8 +309,9 @@ instructionsType = {
 }
 
 
-def escrever_output(sla, linha, numero_linha):
+def escrever_output(sla, linha):
     """Função responsável por escrever no arquivo de saída."""
+    global numero_linha
     global i_text
     global nome_arquivo
     if linha != "":
@@ -433,7 +435,7 @@ with open(nome_arquivo) as entrada:
                 instrucao.pop(0)
             # Verifica se a instrução existe
             try:
-                instructionsType[instrucao[0]](instrucao, numero_linha)
+                instructionsType[instrucao[0]](instrucao)
             except KeyError:
                 continue
 
