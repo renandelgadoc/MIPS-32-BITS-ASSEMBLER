@@ -1,2 +1,6 @@
-# OAC-lab-1
-Algoritmo para converter intruções MIPS assembly para código hexadecimal
+# MIPS 32 bits assembler
+
+- How to run
+
+      python3 converter.py ${TARGET_ASM_FILE}
+
